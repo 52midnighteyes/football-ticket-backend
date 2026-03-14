@@ -1,0 +1,105 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  USER 
+  ADMIN
+}
+
+enum PostCategory {
+MATCH
+PLAYER
+TRANSFER
+NEWS
+FANS
+HISTORY
+TRAINING
+EVENT
+MERCH
+}
+
+model User {
+  id String @id @default(uuid())
+  email String @unique
+  firstName String @map("first_name")
+  lastName String  @map("last_name")
+  password String
+  role UserRole
+  posts Post[]
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([id, email])
+}
+
+model Post {
+  id String @id @default(uuid())
+  image String
+  title String @unique
+  slug String @unique
+  excerpt String
+  content String
+  published Boolean @default(false)
+  author User @relation(fields: [authorId], references: [id])
+  authorId String @map("author_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([id, slug])
+}
+
+
+model ContactForm {
+  id String @id @default(uuid())
+  email String
+  message String
+  createdAt DateTime @default(now())
+}
+
+
+enum PlayerPosition {
+  GOAL_KEEPER
+  DEFENDER
+  MIDFIELDER
+  ATTACKER
+}
+
+model Players {
+  id String @id @default(uuid())
+  fullName String @map("full_name")
+  jerseyNumber Int @unique @map("jersey_number")
+  nationality String
+  position PlayerPosition
+  avatar String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+}
+
+enum StaffRole {    
+  MANAGER
+  HEAD_COACH
+  ASSISTANT_COACH
+  GOALKEEPER_COACH
+  FITNESS_COACH
+  PHYSIOTHERAPIST
+  TEAM_DOCTOR
+  ANALYST
+  KIT_MANAGER
+  ADMINISTRATOR
+}
+
+model Staff {
+  id String @id @default(uuid())
+  fullName String @map("full_name")
+  nationality String
+  staffRole StaffRole @map("staff_role")
+  avatar String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+}
