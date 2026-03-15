@@ -3,9 +3,12 @@ import { AppError } from "../class/appError.js";
 import Jwt from "jsonwebtoken";
 import { JWT_SECRET } from "../config/config.js";
 import type { IUserParams } from "../user.js";
-
 class AuthMiddleware {
-  public async accessToken(req: Request, _res: Response, next: NextFunction) {
+  public accessToken = async (
+    req: Request,
+    _res: Response,
+    next: NextFunction,
+  ) => {
     try {
       const authHeader = req.header("Authorization");
       if (!authHeader) throw new AppError(401, "Missing Authorization header");
@@ -22,7 +25,7 @@ class AuthMiddleware {
     } catch (error) {
       next(error);
     }
-  }
+  };
 }
 
 export const verifyToken = new AuthMiddleware();

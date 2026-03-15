@@ -4,6 +4,7 @@ import type { Response, Request, NextFunction } from "express";
 import { errorHandler } from "./middlewares/errorHandler.middleware.js";
 import { NODE_ENV, PORT } from "./config/config.js";
 import { authRoutes } from "./modules/auth/auth.routes.js";
+import { blogRoutes } from "./modules/blog/blog.routes.js";
 
 class App {
   app: Application;
@@ -41,17 +42,18 @@ class App {
     });
 
     this.app.use("/api/auth", authRoutes);
+    this.app.use("/api/blogs", blogRoutes);
   }
 
   private initializeErrorHandlers(): void {
     this.app.use(errorHandler.handle);
   }
 
-  public start(): void {
+  public start = (): void => {
     this.app.listen(PORT, () => {
       console.log(`server is running on port ${PORT}`);
     });
-  }
+  };
 }
 
 export const app = new App();

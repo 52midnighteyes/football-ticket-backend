@@ -9,7 +9,7 @@ class AuthRepository {
     this.prisma = db;
   }
 
-  public async createUser(params: IRegisterParams) {
+  public createUser = async (params: IRegisterParams) => {
     const user = await this.prisma.user.create({
       data: {
         ...params,
@@ -22,7 +22,7 @@ class AuthRepository {
     });
 
     return user;
-  }
+  };
 }
 
 export const authRepo = new AuthRepository();

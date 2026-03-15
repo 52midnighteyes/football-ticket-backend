@@ -12,7 +12,7 @@ enum UserRole {
   ADMIN
 }
 
-enum PostCategory {
+enum BlogCategory {
 MATCH
 PLAYER
 TRANSFER
@@ -31,21 +31,22 @@ model User {
   lastName String  @map("last_name")
   password String
   role UserRole
-  posts Post[]
+  posts Blog[]
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([id, email])
 }
 
-model Post {
+model Blog {
   id String @id @default(uuid())
   image String
   title String @unique
   slug String @unique
   excerpt String
   content String
-  published Boolean @default(false)
+  category BlogCategory
+  isPublished Boolean @default(false) @map("is_published")
   author User @relation(fields: [authorId], references: [id])
   authorId String @map("author_id")
   createdAt DateTime @default(now()) @map("created_at")

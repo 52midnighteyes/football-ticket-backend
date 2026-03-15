@@ -28,7 +28,7 @@ class AuthService {
   public Login = async (params: ILoginParams) => {
     try {
       const user = await userRepo.findUserByEmail(params.email);
-      if (!user) throw new AppError(404, "User not found");
+      if (!user) throw new AppError(400, "Invalid email or password");
 
       const isMatch = await argon2d.verify(user.password, params.password);
       if (!isMatch) throw new AppError(400, "Invalid email or password");

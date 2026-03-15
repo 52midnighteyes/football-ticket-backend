@@ -8,7 +8,7 @@ class UserRepository {
     this.prisma = db;
   }
 
-  public async findUserByEmail(email: string) {
+  public findUserByEmail = async (email: string) => {
     try {
       const user = await this.prisma.user.findUnique({
         where: {
@@ -21,7 +21,7 @@ class UserRepository {
       console.error("message: ", error);
       throw error;
     }
-  }
+  };
 }
 
 export const userRepo = new UserRepository();
