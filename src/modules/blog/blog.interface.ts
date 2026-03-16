@@ -11,10 +11,13 @@ export interface ICreateBlogParams {
 }
 
 export interface IUpdateBlogParams {
-  file?: Express.Multer.File;
+  id: string;
+  authorId: string;
+  file: Express.Multer.File;
   title: string;
   content: string;
   isPublished: boolean;
+  category: BlogCategory;
 }
 
 //--- DB params

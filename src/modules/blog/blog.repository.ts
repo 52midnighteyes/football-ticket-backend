@@ -8,6 +8,19 @@ class BlogRepo {
     this.prisma = db;
   }
 
+  public getAllBlog = async () => {
+    try {
+      return this.prisma.blog.findMany({
+        where: {
+          isPublished: true,
+        },
+      });
+    } catch (error) {
+      console.error("message:", error);
+      throw error;
+    }
+  };
+
   public findBlogByTitle = async (title: string) => {
     try {
       return await this.prisma.blog.findUnique({
@@ -34,12 +47,26 @@ class BlogRepo {
     }
   };
 
-  public createBlog = async (params: ICreateBlogDbParams) => {
+  public create = async (params: ICreateBlogDbParams) => {
     try {
       return await this.prisma.blog.create({
         data: {
           ...params,
         },
+      });
+    } catch (error) {
+      console.error("message:", error);
+      throw error;
+    }
+  };
+
+  public update = async (params: ICreateBlogDbParams, id: string) => {
+    try {
+      return await this.prisma.blog.update({
+        where: {
+          id,
+        },
+        data: params,
       });
     } catch (error) {
       console.error("message:", error);

@@ -1,4 +1,8 @@
-import type { ICreateBlogParams, IUpdateBlogParams } from "./blog.interface.js";
+import type {
+  ICreateBlogDbParams,
+  ICreateBlogParams,
+  IUpdateBlogParams,
+} from "./blog.interface.js";
 import { blogRepo } from "./blog.repository.js";
 import { AppError } from "../../class/appError.js";
 import { StringConverter } from "../../helper/stringConverter.js";
@@ -25,7 +29,7 @@ class BlogService {
         image: secure_url,
       };
 
-      const data = await blogRepo.createBlog(blog);
+      const data = await blogRepo.create(blog);
 
       return data;
     } catch (error) {
@@ -36,8 +40,42 @@ class BlogService {
   };
 
   public update = async (params: IUpdateBlogParams) => {
+    let publicId;
+
     try {
-    } catch (error) {}
+      const blog = await blogRepo.findBlogById(params.id);
+      if (!blog) throw new AppError(404, "Blog not found");
+
+      const { public_id, secure_url } = await cloudinaryConfig.upload(
+        params.file,
+        params.authorId,
+      );
+
+      publicId = public_id;
+
+      const { file, ...rest } = params;
+
+      const updatedData: ICreateBlogDbParams = {
+        ...rest,
+        slug:
+          params.title === blog.title
+            ? blog.slug
+            : StringConverter.createSlug(params.title),
+        excerpt:
+          params.content !== blog.content
+            ? blog.excerpt
+            : StringConverter.createExcerpt(params.content),
+        image: secure_url!,
+      };
+
+      const data = await blogRepo.update(updatedData, params.id);
+
+      return data;
+    } catch (error) {
+      await cloudinaryConfig.delete(publicId!);
+      console.error("message:", error);
+      throw error;
+    }
   };
 }
 

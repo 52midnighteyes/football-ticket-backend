@@ -34,6 +34,7 @@ model User {
   posts Blog[]
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+  deletedAt DateTime?
 
   @@index([id, email])
 }
@@ -51,10 +52,9 @@ model Blog {
   authorId String @map("author_id")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
-
+  deletedAt DateTime?
   @@index([id, slug])
 }
-
 
 model ContactForm {
   id String @id @default(uuid())
@@ -80,6 +80,7 @@ model Players {
   avatar String?
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+  deletedAt DateTime?
 }
 
 enum StaffRole {    
@@ -103,4 +104,5 @@ model Staff {
   avatar String?
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+  deletedAt DateTime?
 }
