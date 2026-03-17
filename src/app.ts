@@ -5,6 +5,8 @@ import { errorHandler } from "./middlewares/errorHandler.middleware.js";
 import { NODE_ENV, PORT } from "./config/config.js";
 import { authRoutes } from "./modules/auth/auth.routes.js";
 import { blogRoutes } from "./modules/blog/blog.routes.js";
+import helmet from "helmet";
+import cors from "cors";
 
 class App {
   app: Application;
@@ -17,6 +19,9 @@ class App {
   }
 
   private initializeMiddleware(): void {
+    this.app.use(helmet());
+    this.app.use(cors());
+
     this.app.use(express.json());
 
     this.app.use((req: Request, _res: Response, next: NextFunction) => {
