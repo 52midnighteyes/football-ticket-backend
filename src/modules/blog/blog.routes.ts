@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { blogController } from "./blog.controller.js";
 import { upload } from "../../middlewares/multer.middleware.js";
-import { verifyToken } from "../../middlewares/tokenVerification.middleware.js";
+import { verifyToken } from "../../middlewares/tokenVerification/tokenVerification.middleware.js";
 import { inputValidator } from "../../middlewares/zodValidator.middleware.js";
 import {
   createBlogSchema,
