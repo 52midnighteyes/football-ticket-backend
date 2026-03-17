@@ -12,6 +12,12 @@ import {
   togglepublishparamSchema,
   updateBlogSchema,
 } from "./blog.schema.js";
+import {
+  blogDetailLimiter,
+  blogReadLimiter,
+  blogUploadLimiter,
+  blogWriteLimiter,
+} from "./blog.ratelimiter.js";
 
 class BlogRouter {
   private router: Router;
@@ -23,12 +29,14 @@ class BlogRouter {
   private initializeRouter() {
     this.router.get(
       "/:id",
+      blogDetailLimiter,
       inputValidator.schema(getBlogByIdSchema, "params"),
       blogController.getById,
     );
 
     this.router.get(
       "/",
+      blogReadLimiter,
       inputValidator.schema(getAllBlogsSchema, "query"),
       blogController.getAll,
     );
@@ -37,12 +45,14 @@ class BlogRouter {
 
     this.router.patch(
       "/:id/archive",
+      blogWriteLimiter,
       inputValidator.schema(deleteBlogByIdSchema, "params"),
       blogController.deleteById,
     );
 
     this.router.patch(
       "/toggle-publish/:id",
+      blogWriteLimiter,
       inputValidator.schema(togglePublishBodySchema, "body"),
       inputValidator.schema(togglepublishparamSchema, "params"),
       blogController.togglePublish,
@@ -50,6 +60,7 @@ class BlogRouter {
 
     this.router.post(
       "/",
+      blogUploadLimiter,
       upload.single("file"),
       inputValidator.schema(createBlogSchema, "body"),
       blogController.create,
@@ -57,6 +68,7 @@ class BlogRouter {
 
     this.router.put(
       "/",
+      blogUploadLimiter,
       upload.single("file"),
       inputValidator.schema(updateBlogSchema, "body"),
       blogController.update,
