@@ -1,13 +1,14 @@
 import type {
   ICreateBlogDbParams,
   ICreateBlogParams,
+  IGetAllBlogsQuery,
   IUpdateBlogParams,
 } from "./blog.interface.js";
 import { blogRepo } from "./blog.repository.js";
 import { AppError } from "../../class/appError.js";
 import { StringConverter } from "../../helper/stringConverter.js";
 import { cloudinaryConfig } from "../../libs/cloudinary/cloudinary.lib.js";
-
+import { Prisma } from "../../../generated/prisma/client.js";
 class BlogService {
   public create = async (params: ICreateBlogParams) => {
     let publicId;
@@ -73,6 +74,63 @@ class BlogService {
       return data;
     } catch (error) {
       await cloudinaryConfig.delete(publicId!);
+      console.error("message:", error);
+      throw error;
+    }
+  };
+
+  public GetById = async (id: string) => {
+    try {
+      return await blogRepo.findBlogById(id);
+    } catch (error) {
+      console.error("message:", error);
+      throw error;
+    }
+  };
+
+  public getAll = async (params: IGetAllBlogsQuery) => {
+    try {
+      const { search, category, page, limit, sortBy, sortOrder } = params;
+      const skip = (page - 1) * limit;
+      const where = {
+        ...(search && {
+          isPublished: true,
+          OR: [
+            {
+              title: {
+                contains: search,
+                mode: "insensitive" as const,
+              },
+            },
+            {
+              content: {
+                contains: search,
+                mode: "insensitive" as const,
+              },
+            },
+          ],
+
+          ...(category && { category }),
+        }),
+      };
+
+      const orderBy: Prisma.BlogOrderByWithRelationInput = {
+        [sortBy]: sortOrder,
+      };
+
+      const filter = {
+        where,
+        skip,
+        orderBy,
+      };
+
+      const [data, count] = await Promise.all([
+        blogRepo.getAll(filter),
+        blogRepo.countBlog(where),
+      ]);
+
+      return { data, count };
+    } catch (error) {
       console.error("message:", error);
       throw error;
     }

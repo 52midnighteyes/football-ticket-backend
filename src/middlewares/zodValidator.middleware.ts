@@ -7,7 +7,8 @@ class InputValidator {
   public schema(schema: z.ZodType, target: ValidationTarget) {
     return (req: Request, _res: Response, next: NextFunction) => {
       try {
-        req[target] = schema.parse(req[target]);
+        req.validated ??= {};
+        req.validated[target] = schema.parse(req[target]);
         next();
       } catch (error) {
         console.error("message:", error);

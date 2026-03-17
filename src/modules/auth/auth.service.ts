@@ -3,7 +3,7 @@ import { authRepo } from "./auth.repository.js";
 import { AppError } from "../../class/appError.js";
 import { userRepo } from "../user/user.repository.js";
 import argon2d from "argon2";
-import type { IUserParams } from "../../user.js";
+import type { IUserParams } from "../../custom.js";
 
 import Jwt from "jsonwebtoken";
 import { JWT_SECRET } from "../../config/config.js";

@@ -13,6 +13,7 @@ class UserRepository {
       const user = await this.prisma.user.findUnique({
         where: {
           email,
+          deletedAt: null,
         },
       });
 

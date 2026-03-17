@@ -18,6 +18,7 @@ class AuthRepository {
         password: true,
         updatedAt: true,
         createdAt: true,
+        deletedAt: true,
       },
     });
 

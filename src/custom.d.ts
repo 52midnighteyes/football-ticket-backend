@@ -6,10 +6,19 @@ export interface IUserParams {
   role: string;
 }
 
+export interface IValidatedRequest {
+  query?: unknown;
+  body?: unknown;
+  params?: unknown;
+}
+
 declare global {
   namespace Express {
-    export interface Request {
+    interface Request {
       user?: IUserParams;
+      validated?: IValidatedRequest;
     }
   }
 }
+
+export {};

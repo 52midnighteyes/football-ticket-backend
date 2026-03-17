@@ -2,7 +2,7 @@ import type { Request, Response, NextFunction } from "express";
 import { AppError } from "../class/appError.js";
 import Jwt from "jsonwebtoken";
 import { JWT_SECRET } from "../config/config.js";
-import type { IUserParams } from "../user.js";
+import type { IUserParams } from "../custom.js";
 class AuthMiddleware {
   public accessToken = async (
     req: Request,
