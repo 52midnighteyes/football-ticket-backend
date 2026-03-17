@@ -5,8 +5,11 @@ import { verifyToken } from "../../middlewares/tokenVerification/tokenVerificati
 import { inputValidator } from "../../middlewares/zodValidator.middleware.js";
 import {
   createBlogSchema,
+  deleteBlogByIdSchema,
   getAllBlogsSchema,
   getBlogByIdSchema,
+  togglePublishBodySchema,
+  togglepublishparamSchema,
   updateBlogSchema,
 } from "./blog.schema.js";
 
@@ -19,7 +22,7 @@ class BlogRouter {
 
   private initializeRouter() {
     this.router.get(
-      "blog/:id",
+      "/:id",
       inputValidator.schema(getBlogByIdSchema, "params"),
       blogController.getById,
     );
@@ -32,12 +35,26 @@ class BlogRouter {
 
     this.router.use(verifyToken.accessToken);
 
+    this.router.patch(
+      "/:id/archive",
+      inputValidator.schema(deleteBlogByIdSchema, "params"),
+      blogController.deleteById,
+    );
+
+    this.router.patch(
+      "/toggle-publish/:id",
+      inputValidator.schema(togglePublishBodySchema, "body"),
+      inputValidator.schema(togglepublishparamSchema, "params"),
+      blogController.togglePublish,
+    );
+
     this.router.post(
       "/",
       upload.single("file"),
       inputValidator.schema(createBlogSchema, "body"),
       blogController.create,
     );
+
     this.router.put(
       "/",
       upload.single("file"),

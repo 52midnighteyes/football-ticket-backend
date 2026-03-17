@@ -13,56 +13,44 @@ class BlogRepo {
   }
 
   public findBlogByTitle = async (title: string) => {
-    try {
-      return await this.prisma.blog.findUnique({
-        where: {
-          title,
-        },
-      });
-    } catch (error) {
-      console.error("message:", error);
-      throw error;
-    }
+    return await this.prisma.blog.findUnique({
+      where: {
+        title,
+      },
+    });
   };
 
   public findBlogById = async (id: string) => {
-    try {
-      return await this.prisma.blog.findUnique({
-        where: {
-          id,
+    return await this.prisma.blog.findUnique({
+      where: {
+        id,
+      },
+      include: {
+        author: {
+          select: {
+            firstName: true,
+            lastName: true,
+          },
         },
-      });
-    } catch (error) {
-      console.error("message:", error);
-      throw error;
-    }
+      },
+    });
   };
 
   public create = async (params: ICreateBlogDbParams) => {
-    try {
-      return await this.prisma.blog.create({
-        data: {
-          ...params,
-        },
-      });
-    } catch (error) {
-      console.error("message:", error);
-      throw error;
-    }
+    return await this.prisma.blog.create({
+      data: {
+        ...params,
+      },
+    });
   };
 
   public update = async (params: ICreateBlogDbParams, id: string) => {
-    try {
-      return await this.prisma.blog.update({
-        where: {
-          id,
-        },
-        data: params,
-      });
-    } catch (error) {
-      console.error("message:", error);
-      throw error;
-    }
+    return await this.prisma.blog.update({
+      where: {
+        id,
+      },
+      data: params,
+    });
   };
 
   public getAll = async (params: IGetAllBlogsQueryDbParams) => {
@@ -84,6 +72,48 @@ class BlogRepo {
 
   public countBlog = async (where?: Prisma.BlogWhereInput) => {
     return this.prisma.blog.count(where ? { where } : undefined);
+  };
+
+  public deleteById = async (id: string, title: string) => {
+    return await this.prisma.blog.update({
+      where: { id },
+      data: {
+        title,
+        isPublished: false,
+        deletedAt: new Date(),
+      },
+      select: {
+        id: true,
+        title: true,
+        author: {
+          select: {
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+      },
+    });
+  };
+
+  public togglePublish = async (id: string, isPublished: boolean) => {
+    return await this.prisma.blog.update({
+      where: { id },
+      data: {
+        isPublished,
+      },
+      select: {
+        id: true,
+        title: true,
+        author: {
+          select: {
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+      },
+    });
   };
 }
 

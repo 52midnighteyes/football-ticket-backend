@@ -2,6 +2,7 @@ import type {
   ICreateBlogDbParams,
   ICreateBlogParams,
   IGetAllBlogsQuery,
+  ITogglePublishParams,
   IUpdateBlogParams,
 } from "./blog.interface.js";
 import { blogRepo } from "./blog.repository.js";
@@ -79,9 +80,31 @@ class BlogService {
     }
   };
 
-  public GetById = async (id: string) => {
+  public getById = async (id: string) => {
     try {
-      return await blogRepo.findBlogById(id);
+      const data = await blogRepo.findBlogById(id);
+      if (!data) throw new AppError(404, "Blog not found");
+
+      if (!data.isPublished || data.deletedAt !== null)
+        throw new AppError(403, "Blog is not published or has been deleted");
+
+      return data;
+    } catch (error) {
+      console.error("message:", error);
+      throw error;
+    }
+  };
+
+  public deleteById = async (id: string) => {
+    try {
+      const blog = await blogRepo.findBlogById(id);
+      if (!blog) throw new AppError(404, "blog not found");
+
+      const newTitle = "[DELETED]" + blog.title;
+
+      const data = await blogRepo.deleteById(blog.id, newTitle);
+
+      return data;
     } catch (error) {
       console.error("message:", error);
       throw error;
@@ -93,8 +116,9 @@ class BlogService {
       const { search, category, page, limit, sortBy, sortOrder } = params;
       const skip = (page - 1) * limit;
       const where = {
+        isPublished: true,
+        deletedAt: null,
         ...(search && {
-          isPublished: true,
           OR: [
             {
               title: {
@@ -130,6 +154,20 @@ class BlogService {
       ]);
 
       return { data, count };
+    } catch (error) {
+      console.error("message:", error);
+      throw error;
+    }
+  };
+
+  public togglePublish = async (params: ITogglePublishParams) => {
+    try {
+      const blog = await blogRepo.findBlogById(params.id);
+      if (!blog) throw new AppError(404, "Blog not found");
+
+      const data = await blogRepo.togglePublish(blog.id, !blog.isPublished);
+
+      return data;
     } catch (error) {
       console.error("message:", error);
       throw error;

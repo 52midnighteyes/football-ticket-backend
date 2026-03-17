@@ -25,6 +25,10 @@ export const getBlogByIdSchema = z.object({
   id: z.uuid().nonempty("Blog ID is required"),
 });
 
+export const deleteBlogByIdSchema = z.object({
+  id: z.uuid(),
+});
+
 export const getAllBlogsSchema = z.object({
   search: z.string().trim().optional(),
 
@@ -55,4 +59,12 @@ export const getAllBlogsSchema = z.object({
       message: "Sort Order has to be one of the following: asc, desc",
     })
     .default("desc"),
+});
+
+export const togglePublishBodySchema = z.object({
+  id: z.uuid().nonempty("Blog ID is required"),
+});
+
+export const togglepublishparamSchema = z.object({
+  isPublished: z.boolean(),
 });

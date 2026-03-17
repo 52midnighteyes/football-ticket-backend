@@ -4,6 +4,7 @@ import { AppError } from "../../class/appError.js";
 import type {
   ICreateBlogParams,
   IGetAllBlogsQuery,
+  ITogglePublishParams,
   IUpdateBlogParams,
 } from "./blog.interface.js";
 
@@ -53,7 +54,7 @@ class BlogController {
   public getById = async (req: Request, res: Response, Next: NextFunction) => {
     try {
       const { id } = req.validated!.params as { id: string };
-      const data = await blogService.GetById(id);
+      const data = await blogService.getById(id);
 
       res.status(200).json({ message: "Blog fetched successfully", data });
     } catch (error) {
@@ -69,6 +70,37 @@ class BlogController {
       res.status(200).json({ message: "Blogs fetched successfully", data });
     } catch (error) {
       Next(error);
+    }
+  };
+
+  public deleteById = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const { id } = req.validated?.params as { id: string };
+      const data = await blogService.deleteById(id);
+
+      res.status(200).json({ message: "Blog deleted successfully", data });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public togglePublish = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    try {
+      const { id } = req.validated?.params as { id: string };
+      const payload = req.validated?.body as Omit<ITogglePublishParams, "id">;
+
+      const data = await blogService.togglePublish({ ...payload, id });
+      res.status(200).json({ message: "Blog publish status updated", data });
+    } catch (error) {
+      next(error);
     }
   };
 }

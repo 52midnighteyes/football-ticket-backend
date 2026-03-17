@@ -10,10 +10,10 @@ import { userRoles } from "../../enum/userRole.enum.js";
 // }
 
 export const verifiedTokenSchema = z.object({
-  id: z.uuid().nonempty("User ID is required"),
-  email: z.email().nonempty,
+  id: z.uuid({ error: "User ID from token is invalid" }),
+  email: z.email({ error: "Email from token is invalid" }),
   firstName: z.string().nonempty("First name is required").trim(),
-  lastName: z.string().nonempty,
+  lastName: z.string().nonempty("Last name is required").trim(),
   role: z.enum(userRoles, {
     message:
       "user role from token is invalid. role has to be one of the following: " +

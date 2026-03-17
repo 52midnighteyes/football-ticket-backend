@@ -30,6 +30,11 @@ export interface IGetAllBlogsQuery {
   sortOrder: "asc" | "desc";
 }
 
+export interface ITogglePublishParams {
+  id: string;
+  isPublished: Boolean;
+}
+
 //--- DB params
 
 export interface ICreateBlogDbParams extends Omit<ICreateBlogParams, "file"> {
