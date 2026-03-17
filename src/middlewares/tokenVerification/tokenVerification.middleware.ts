@@ -1,8 +1,9 @@
 import type { Request, Response, NextFunction } from "express";
-import { AppError } from "../class/appError.js";
+import { AppError } from "../../class/appError.js";
 import Jwt from "jsonwebtoken";
-import { JWT_SECRET } from "../config/config.js";
-import type { IUserParams } from "../custom.js";
+import { JWT_SECRET } from "../../config/config.js";
+import type { IUserParams } from "../../custom.js";
+import { verifiedTokenSchema } from "./tokenVerification.schema.js";
 class AuthMiddleware {
   public accessToken = async (
     req: Request,
@@ -18,7 +19,10 @@ class AuthMiddleware {
         throw new AppError(401, "Invalid Authorization header format", true);
       }
 
-      const verification = Jwt.verify(token, JWT_SECRET);
+      const verification = verifiedTokenSchema.parse(
+        Jwt.verify(token, JWT_SECRET),
+      );
+
       req.user = verification as IUserParams;
 
       next();
