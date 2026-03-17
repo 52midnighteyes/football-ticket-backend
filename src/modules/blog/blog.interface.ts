@@ -1,3 +1,4 @@
+import type { Prisma } from "../../../generated/prisma/client.js";
 import type { BlogCategory } from "../../../generated/prisma/enums.js";
 
 //--- service params
@@ -20,10 +21,26 @@ export interface IUpdateBlogParams {
   category: BlogCategory;
 }
 
+export interface IGetAllBlogsQuery {
+  search?: string;
+  category?: BlogCategory;
+  page: number;
+  limit: number;
+  sortBy: "createdAt" | "title";
+  sortOrder: "asc" | "desc";
+}
+
 //--- DB params
 
 export interface ICreateBlogDbParams extends Omit<ICreateBlogParams, "file"> {
   image: string;
   excerpt: string;
   slug: string;
+}
+
+export interface IGetAllBlogsQueryDbParams {
+  where?: Prisma.BlogWhereInput;
+  skip?: number;
+  take?: number;
+  orderBy?: Prisma.BlogOrderByWithRelationInput;
 }
