@@ -11,7 +11,6 @@ export const createBlogSchema = z.object({
 });
 
 export const updateBlogSchema = z.object({
-  id: z.uuid().nonempty("Blog ID is required"),
   title: z.string().nonempty("Title is required").trim(),
   content: z.string().nonempty("Content is required").trim(),
   isPublished: z.boolean().optional(),
@@ -19,6 +18,10 @@ export const updateBlogSchema = z.object({
     message:
       "Catagory has to be one of the following: " + blogCategories.join(", "),
   }),
+});
+
+export const updateBlogParamSchema = z.object({
+  id: z.uuid().nonempty("Blog ID is required"),
 });
 
 export const getBlogByIdSchema = z.object({

@@ -38,11 +38,13 @@ class BlogController {
         IUpdateBlogParams,
         "file" | "authorId"
       >;
-      const id = req.user?.id;
+      const { id } = req.validated!.params as { id: string };
+      const authorId = req.user?.id;
       const data = await blogService.update({
         ...payload,
         file,
-        authorId: id!,
+        authorId: authorId!,
+        id,
       });
 
       res.status(201).json({ message: "Blog updated successfully", data });

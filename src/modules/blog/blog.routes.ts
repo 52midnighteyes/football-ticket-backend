@@ -67,10 +67,11 @@ class BlogRouter {
     );
 
     this.router.put(
-      "/",
+      "/:id",
       blogUploadLimiter,
       upload.single("file"),
       inputValidator.schema(updateBlogSchema, "body"),
+      inputValidator.schema(getBlogByIdSchema, "params"),
       blogController.update,
     );
   }

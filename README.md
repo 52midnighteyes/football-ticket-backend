@@ -1,101 +1,49 @@
 # Persija Jakarta API
 
-REST API untuk Persija Jakarta company profile. Built with TypeScript, Express, Prisma, PostgreSQL.
+This is a simple backend for a Persija Jakarta company profile (code challenge/task), built with TypeScript, Express, Prisma, and PostgreSQL.
 
-## 📌 Version & Status
+It includes:
 
-**Current Version:** `v1.0.0`  
-**Status:** 🟡 In Development  
-**Last Updated:** March 17, 2026
+- JWT auth with refresh tokens (stored in an `httpOnly` cookie)
+- Blog CRUD with image uploads (Cloudinary)
+- Pagination, filtering, sorting, and rate limiting
+- Soft delete (archive instead of hard delete)
+- Validation via Zod
 
-## 🛠 Tech Stack
+---
 
-- Node.js + TypeScript
-- Express.js v5+
-- PostgreSQL + Prisma v7+
-- JWT + Argon2 (Auth)
-- Zod (Validation)
-- Multer + Cloudinary (File Upload)
+## Main features (what you can do)
 
-## ⚡ Quick Start
+- **Register / Login** → get access token + refresh token cookie
+- **Refresh token flow** → `/api/auth/refresh-token` keeps you logged in without retyping password
+- **Protected endpoints** → send `Authorization: Bearer <token>`
+- **Blog posts** → create/update with image upload (`multipart/form-data` + `file` field)
+- **Soft delete** → archive a blog instead of removing it
+- **Publish toggle** → flip publish state without editing the post
+- **List blog posts** with search, category filter, pagination, and sorting
 
-```bash
-npm install
-cp .env.example .env
-# Update .env dengan credentials Anda
-npm run prisma:migrate
-npm run dev
-```
+---
 
-## 📝 API Endpoints
+## API endpoints (short list)
 
 ### Auth
 
-- `POST /api/auth/register` - Register user
-- `POST /api/auth/login` - Login & get JWT token
+- `POST /api/auth/register` → create account
+- `POST /api/auth/login` → login (returns access token + refresh cookie)
+- `POST /api/auth/refresh-token` → refresh access token using cookie
+- `POST /api/auth/logout` → clear refresh cookie
+
+> Note: Most private endpoints require `Authorization: Bearer <token>`.
 
 ### Blog
 
-- `GET /api/blogs` - Get all (dengan pagination, filter, sort)
-- `GET /api/blogs/:id` - Get detail
-- `POST /api/blogs` - Create (auth required)
-- `PUT /api/blogs/:id` - Update (auth required)
-- `DELETE /api/blogs/:id` - Delete (auth required)
+- `GET /api/blogs` → list blogs (supports search + pagination + sort)
+- `GET /api/blogs/:id` → get blog by ID
+- `POST /api/blogs` → create blog (auth + upload image)
+- `PUT /api/blogs/:id` → edit blog (auth + upload image)
+- `PATCH /api/blogs/:id/archive` → soft delete a blog
+- `PATCH /api/blogs/toggle-publish/:id` → toggle publish state
 
-## 🗄️ Database Models
+**Note:** for create/update use `multipart/form-data` with a `file` field for the image.
 
-- **User** - id, email, firstName, lastName, password, role, createdAt, updatedAt, deletedAt
-- **Blog** - id, title, slug, content, image, excerpt, category, isPublished, authorId, createdAt, updatedAt, deletedAt
-- **Players** - Player info
-- **Staff** - Staff info
-- **ContactForm** - id, email, message, isResponded, createdAt
-
-Blog Categories: MATCH, PLAYER, TRANSFER, NEWS, TRAINING, FANS, HISTORY, EVENT, MERCH
-
-## 📂 Project Structure
-
-```
-src/
-├── modules/
-│   ├── auth/        (register, login)
-│   ├── blog/        (CRUD operations)
-│   └── user/        (user queries)
-├── middlewares/     (auth, validation, error handling)
-├── libs/           (Prisma, Cloudinary config)
-├── enum/           (blogCategory, userRole)
-├── config/         (environment variables)
-└── helper/         (utilities)
-```
-
-## 🔐 Environment Variables
-
-```env
-DATABASE_URL="postgresql://user:password@localhost:5432/prisja_db"
-JWT_SECRET="your-min-32-char-secret-key-here"
-NODE_ENV="development"
-PORT=3000
-CLOUDINARY_CLOUD_NAME="your-cloud-name"
-CLOUDINARY_API_KEY="your-api-key"
-CLOUDINARY_API_SECRET="your-api-secret"
-```
-
-## 📜 Available Scripts
-
-```bash
-npm run dev              # Development with hot reload
-npm start               # Production
-npm run prisma:migrate  # Run database migrations
-npm run prisma:generate # Generate Prisma Client
-npm run prisma:studio   # Open Prisma Studio GUI
-```
-
-## 🔄 Version History
-
-### v1.0.0 (Current - March 17, 2026)
-
-- ✅ Authentication (Register, Login with JWT)
-- ✅ Blog CRUD with image upload (Cloudinary)
-- ✅ Blog pagination, filtering & sorting
-- ✅ User, Players, Staff, ContactForm models
-- ✅ Soft delete implementation
-- ✅ Zod validation & error handling
+---
