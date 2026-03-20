@@ -124,7 +124,6 @@ class AuthService {
         },
         data: {
           accessToken: newAccessToken,
-          user: safeUser,
         },
       };
     } catch (error) {

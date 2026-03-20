@@ -12,7 +12,8 @@ import { cloudinaryConfig } from "../../libs/cloudinary/cloudinary.lib.js";
 import { Prisma } from "../../../generated/prisma/client.js";
 class BlogService {
   public create = async (params: ICreateBlogParams) => {
-    let publicId;
+    let imagePublicId;
+    let isUploaded = false;
     try {
       const isExists = await blogRepo.findBlogByTitle(params.title);
       if (isExists) throw new AppError(409, "Blog title already exists");
@@ -21,7 +22,8 @@ class BlogService {
         params.file,
         params.authorId,
       );
-      publicId = public_id;
+      imagePublicId = public_id;
+      isUploaded = true;
 
       const { file, ...rest } = params;
       const blog = {
@@ -29,20 +31,22 @@ class BlogService {
         excerpt: StringConverter.createExcerpt(params.content),
         slug: StringConverter.createSlug(params.title),
         image: secure_url,
+        imagePublicId,
       };
 
       const data = await blogRepo.create(blog);
 
       return data;
     } catch (error) {
-      await cloudinaryConfig.delete(publicId!);
+      if (isUploaded) await cloudinaryConfig.delete(imagePublicId!);
       console.error("message:", error);
       throw error;
     }
   };
 
   public update = async (params: IUpdateBlogParams) => {
-    let publicId;
+    let imagePublicId;
+    let isUploaded = false;
 
     try {
       const blog = await blogRepo.findBlogById(params.id);
@@ -53,7 +57,8 @@ class BlogService {
         params.authorId,
       );
 
-      publicId = public_id;
+      imagePublicId = public_id;
+      isUploaded = true;
 
       const { file, ...rest } = params;
 
@@ -68,13 +73,15 @@ class BlogService {
             ? blog.excerpt
             : StringConverter.createExcerpt(params.content),
         image: secure_url!,
+        imagePublicId,
       };
 
       const data = await blogRepo.update(updatedData, params.id);
+      await cloudinaryConfig.delete(blog.imagePublicId);
 
       return data;
     } catch (error) {
-      await cloudinaryConfig.delete(publicId!);
+      if (isUploaded) await cloudinaryConfig.delete(imagePublicId!);
       console.error("message:", error);
       throw error;
     }
@@ -88,7 +95,20 @@ class BlogService {
       if (!data.isPublished || data.deletedAt !== null)
         throw new AppError(403, "Blog is not published or has been deleted");
 
-      return data;
+      const safeData = {
+        author: data.author.firstName + " " + data.author.lastName,
+        id: data.id,
+        createdAt: data.createdAt,
+        updatedAt: data.updatedAt,
+        image: data.image,
+        title: data.title,
+        slug: data.slug,
+        excerpt: data.excerpt,
+        content: data.content,
+        category: data.category,
+      };
+
+      return { data: safeData };
     } catch (error) {
       console.error("message:", error);
       throw error;
@@ -118,6 +138,7 @@ class BlogService {
       const where = {
         isPublished: true,
         deletedAt: null,
+        ...(category && { category }),
         ...(search && {
           OR: [
             {
@@ -133,8 +154,6 @@ class BlogService {
               },
             },
           ],
-
-          ...(category && { category }),
         }),
       };
 
@@ -145,15 +164,18 @@ class BlogService {
       const filter = {
         where,
         skip,
+        take: limit,
         orderBy,
       };
+
+      console.log(filter);
 
       const [data, count] = await Promise.all([
         blogRepo.getAll(filter),
         blogRepo.countBlog(where),
       ]);
 
-      return { data, count };
+      return { data, meta: count };
     } catch (error) {
       console.error("message:", error);
       throw error;

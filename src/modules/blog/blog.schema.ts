@@ -3,7 +3,7 @@ import { blogCategories } from "../../enum/blogCategory.enum.js";
 export const createBlogSchema = z.object({
   title: z.string().nonempty("Title is required").trim(),
   content: z.string().nonempty("Content is required").trim(),
-  isPublished: z.boolean().optional(),
+  isPublished: z.coerce.boolean().optional(),
   category: z.enum(blogCategories, {
     message:
       "Catagory has to be one of the following: " + blogCategories.join(", "),
@@ -49,7 +49,7 @@ export const getAllBlogsSchema = z.object({
     .int()
     .min(1, "Limit must be at least 1")
     .max(100, "Limit cannot be more than 100")
-    .default(10),
+    .default(100),
 
   sortBy: z
     .enum(["createdAt", "title"], {

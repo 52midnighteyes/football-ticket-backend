@@ -43,6 +43,7 @@ model User {
 model Blog {
   id String @id @default(uuid())
   image String
+  imagePublicId String
   title String @unique
   slug String @unique
   excerpt String
