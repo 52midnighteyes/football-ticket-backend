@@ -7,6 +7,13 @@ import type {
   ITogglePublishParams,
   IUpdateBlogParams,
 } from "./blog.interface.js";
+// import { prisma } from "../../libs/prisma/prisma.lib.js";
+// import {
+//   blogsDummyData,
+//   type IScriptBLog,
+// } from "../../data/blogDummies.data.js";
+// import { blogRepo } from "./blog.repository.js";
+// import { StringConverter } from "../../helper/stringConverter.js";
 
 class BlogController {
   public create = async (req: Request, res: Response, next: NextFunction) => {
@@ -67,6 +74,7 @@ class BlogController {
   public getAll = async (req: Request, res: Response, Next: NextFunction) => {
     try {
       const payload = req.validated!.query as IGetAllBlogsQuery;
+      console.log("Payload:", payload);
       const data = await blogService.getAll(payload);
 
       res.status(200).json({ message: "Blogs fetched successfully", data });
@@ -105,6 +113,29 @@ class BlogController {
       next(error);
     }
   };
+
+  // public blogCreateManyScript = async (
+  //   req: Request,
+  //   res: Response,
+  //   next: NextFunction,
+  // ) => {
+  //   try {
+  //     const updatedBlogsDummyData: IScriptBLog[] = blogsDummyData.map((a) => ({
+  //       ...a,
+  //       excerpt: StringConverter.createExcerpt(a.content),
+  //       slug: StringConverter.createSlug(a.title),
+  //       isPublished: true,
+  //     }));
+
+  //     await prisma.blog.createMany({
+  //       data: updatedBlogsDummyData,
+  //     });
+
+  //     res.status(201).json({ message: "Blogs created successfully (dummy)" });
+  //   } catch (error) {
+  //     next(error);
+  //   }
+  // };
 }
 
 export const blogController = new BlogController();

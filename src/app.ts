@@ -21,7 +21,12 @@ class App {
 
   private initializeMiddleware(): void {
     this.app.use(helmet());
-    this.app.use(cors());
+    this.app.use(
+      cors({
+        origin: "http://localhost:5173",
+        credentials: true,
+      }),
+    );
     this.app.use(cookieParser());
     this.app.use(express.json());
 
@@ -38,6 +43,7 @@ class App {
       console.log("Body     :", req.body);
       console.log("Query    :", req.query);
       console.log("File     :", req.file);
+      console.log("refreshToken :", req.cookies.refreshToken);
       console.log("============================\n");
 
       next();

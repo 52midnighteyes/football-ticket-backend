@@ -11,7 +11,6 @@ export interface IRegisterParams {
 export interface ILoginParams {
   email: string;
   password: string;
-  role: UserRole;
 }
 
 export interface ICreateRefreshTokenDbParams {

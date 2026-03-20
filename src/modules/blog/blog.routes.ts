@@ -74,6 +74,8 @@ class BlogRouter {
       inputValidator.schema(getBlogByIdSchema, "params"),
       blogController.update,
     );
+
+    // this.router.post("/dummy", blogController.blogCreateManyScript);
   }
 
   public getRouter() {

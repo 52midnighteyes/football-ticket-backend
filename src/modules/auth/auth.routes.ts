@@ -21,7 +21,7 @@ class AuthRouter {
 
     this.router.post(
       "/login",
-      loginLimiter,
+      // loginLimiter,
       inputValidator.schema(loginSchema, "body"),
       authController.login,
     );

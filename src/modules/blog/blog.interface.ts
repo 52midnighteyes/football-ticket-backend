@@ -7,6 +7,7 @@ export interface ICreateBlogParams {
   title: string;
   content: string;
   isPublished?: boolean;
+  imagePublicId: string;
   authorId: string;
   category: BlogCategory;
 }
@@ -19,6 +20,7 @@ export interface IUpdateBlogParams {
   content: string;
   isPublished: boolean;
   category: BlogCategory;
+  imagePublicId: string;
 }
 
 export interface IGetAllBlogsQuery {
