@@ -5,7 +5,7 @@ import { errorHandler } from "./middlewares/errorHandler.middleware.js";
 import { NODE_ENV, PORT } from "./config/config.js";
 import { authRoutes } from "./modules/auth/auth.routes.js";
 import { blogRoutes } from "./modules/blog/blog.routes.js";
-import helmet from "helmet";
+// import helmet from "helmet";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import { matchRouter } from "./modules/match/match.routes.js";
@@ -21,7 +21,7 @@ class App {
   }
 
   private initializeMiddleware(): void {
-    this.app.use(helmet());
+    // this.app.use(helmet());
     this.app.use(
       cors({
         origin: "http://localhost:5173",
