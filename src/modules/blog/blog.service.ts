@@ -15,6 +15,7 @@ class BlogService {
     let imagePublicId;
     let isUploaded = false;
     try {
+      console.log(params, "<<<<<<<<<params");
       const isExists = await blogRepo.findBlogByTitle(params.title);
       if (isExists) throw new AppError(409, "Blog title already exists");
 

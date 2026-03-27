@@ -29,7 +29,7 @@ class BlogController {
         ...payload,
         file,
         authorId: id!,
-      } as ICreateBlogParams);
+      });
 
       res.status(201).json({ message: "Blog created successfully", data });
     } catch (error) {

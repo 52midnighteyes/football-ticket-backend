@@ -7,7 +7,6 @@ export interface ICreateBlogParams {
   title: string;
   content: string;
   isPublished?: boolean;
-  imagePublicId: string;
   authorId: string;
   category: BlogCategory;
 }
@@ -43,6 +42,7 @@ export interface ICreateBlogDbParams extends Omit<ICreateBlogParams, "file"> {
   image: string;
   excerpt: string;
   slug: string;
+  imagePublicId: string;
 }
 
 export interface IGetAllBlogsQueryDbParams {
