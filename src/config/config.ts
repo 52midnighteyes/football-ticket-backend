@@ -1,53 +1,35 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-class EnvConfig {
-  public readonly PORT: number;
-  public readonly JWT_SECRET: string;
-  public readonly NODE_ENV: string;
-  public readonly DATABASE_URL: string;
-  public readonly FRONTEND_URL: string;
-  public readonly REFRESH_TOKEN_SECRET: string;
+const getRequiredEnv = (name: string): string => {
+  const value = process.env[name];
 
-  constructor() {
-    this.PORT = this.toNumber("PORT", 8080);
-    this.JWT_SECRET = this.required("JWT_SECRET");
-    this.NODE_ENV = process.env.NODE_ENV || "development";
-    this.DATABASE_URL = this.required("DATABASE_URL");
-    this.FRONTEND_URL = process.env.FRONTEND_URL || `http://localhost:3000`;
-    this.REFRESH_TOKEN_SECRET = this.required("REFRESH_TOKEN_SECRET");
+  if (!value || value.trim() === "") {
+    throw new Error(`Missing env: ${name}`);
   }
 
-  private required(name: string): string {
-    const value = process.env[name];
-    if (!value || value.trim() === "") {
-      throw new Error(`Missing env: ${name}`);
-    }
-    return value;
+  return value;
+};
+
+const getNumberEnv = (name: string, fallback: number): number => {
+  const value = process.env[name];
+
+  if (!value || value.trim() === "") {
+    return fallback;
   }
 
-  private toNumber(name: string, fallback: number): number {
-    const value = process.env[name];
+  const parsed = Number(value);
 
-    if (!value || value.trim() === "") return fallback;
-
-    const parsed = Number(value);
-
-    if (Number.isNaN(parsed)) {
-      throw new Error(`Invalid number env: ${name}`);
-    }
-
-    return parsed;
+  if (Number.isNaN(parsed)) {
+    throw new Error(`Invalid number env: ${name}`);
   }
-}
 
-export const env = new EnvConfig();
+  return parsed;
+};
 
-export const {
-  PORT,
-  JWT_SECRET,
-  NODE_ENV,
-  DATABASE_URL,
-  FRONTEND_URL,
-  REFRESH_TOKEN_SECRET,
-} = env;
+export const PORT = getNumberEnv("PORT", 8080);
+export const JWT_SECRET = getRequiredEnv("JWT_SECRET");
+export const NODE_ENV = process.env.NODE_ENV || "development";
+export const DATABASE_URL = getRequiredEnv("DATABASE_URL");
+export const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
+export const REFRESH_TOKEN_SECRET = getRequiredEnv("REFRESH_TOKEN_SECRET");

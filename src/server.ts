@@ -1,5 +1,5 @@
-import App from "./app.js";
+import { createApp, startApp } from "./app.js";
 import { createModules } from "./modules/index.js";
 
-const app = new App(createModules());
-app.start();
+const app = createApp(createModules());
+startApp(app);

@@ -1,23 +1,17 @@
 import { PrismaClient } from "../../../generated/prisma/client.js";
 import { PrismaNeon } from "@prisma/adapter-neon";
+import { DATABASE_URL } from "../../config/config.js";
 
-class PrismaConfig {
-  public prisma: PrismaClient;
-  constructor() {
-    const adapter = new PrismaNeon({
-      connectionString: process.env.DATABASE_URL!,
-    });
-    this.prisma = new PrismaClient({ adapter });
-  }
+const adapter = new PrismaNeon({
+  connectionString: DATABASE_URL,
+});
 
-  public async connect(): Promise<void> {
-    await this.prisma.$connect();
-  }
+export const prisma = new PrismaClient({ adapter });
 
-  public async disconnect(): Promise<void> {
-    await this.prisma.$disconnect();
-  }
-}
+export const connectPrisma = async (): Promise<void> => {
+  await prisma.$connect();
+};
 
-const prismaClient = new PrismaConfig();
-export const prisma = prismaClient.prisma;
+export const disconnectPrisma = async (): Promise<void> => {
+  await prisma.$disconnect();
+};

@@ -4,6 +4,10 @@ Boilerplate backend sederhana berbasis TypeScript, Express, Prisma, PostgreSQL, 
 
 Project ini sudah memakai pola module assembly, jadi route tidak didaftarkan satu per satu di `server.ts`. Setiap module merakit dependency-nya sendiri lalu dikumpulkan di satu tempat.
 
+## Status Project
+
+Project ini masih raw dan masih akan terus gue refactor. Struktur yang ada sekarang sudah bisa dipakai buat development, tapi masih bakal gue rapihin lagi seiring progress fitur dan kebutuhan arsitektur.
+
 ## Stack
 
 - TypeScript
@@ -277,7 +281,8 @@ Assembler semua module ada di:
 `server.ts` hanya memanggil:
 
 ```ts
-const app = new App(createModules());
+const app = createApp(createModules());
+startApp(app);
 ```
 
 ## Cara Menambah Module Baru
@@ -302,23 +307,21 @@ src/modules/profile/
 Contoh `profile.module.ts`:
 
 ```ts
-import ProfileController from "./profile.controller.js";
-import ProfileRoute from "./profile.route.js";
-import ProfileService from "./profile.service.js";
-import ProfileRepository from "./profile.repository.js";
+import { createProfileController } from "./profile.controller.js";
+import { createProfileRoute } from "./profile.route.js";
+import { createProfileService } from "./profile.service.js";
+import { createProfileRepository } from "./profile.repository.js";
 
-export class ProfileModule {
-  public create() {
-    const profileRepository = new ProfileRepository();
-    const profileService = new ProfileService(profileRepository);
-    const profileController = new ProfileController(profileService);
+export const createProfileModule = () => {
+  const profileRepository = createProfileRepository();
+  const profileService = createProfileService(profileRepository);
+  const profileController = createProfileController(profileService);
 
-    return {
-      path: "/api/profile",
-      router: new ProfileRoute(profileController).getRouter(),
-    };
-  }
-}
+  return {
+    path: "/api/profile",
+    router: createProfileRoute(profileController),
+  };
+};
 ```
 
 ### 3. Daftarkan ke assembler module
@@ -326,16 +329,16 @@ export class ProfileModule {
 Edit `src/modules/index.ts`:
 
 ```ts
-import { AuthModule } from "./auth/auth.module.js";
-import { ProfileModule } from "./profile/profile.module.js";
+import { createAuthModule } from "./auth/auth.module.js";
+import { createProfileModule } from "./profile/profile.module.js";
 import type { AppModule } from "../types/module.type.js";
 
 export const createModules = (): AppModule[] => {
-  return [new AuthModule().create(), new ProfileModule().create()];
+  return [createAuthModule(), createProfileModule()];
 };
 ```
 
-Setelah itu `App` akan otomatis me-loop semua module dan register route-nya.
+Setelah itu app akan otomatis me-loop semua module dan register route-nya.
 
 ## Catatan
 

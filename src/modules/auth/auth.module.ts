@@ -1,21 +1,22 @@
-import AuthController from "./auth.controller.js";
-import AuthRouter from "./auth.route.js";
-import { AuthRepository } from "./auth.repository.js";
-import AuthService from "./auth.service.js";
-import UserRepository from "../user/user.repository.js";
+import { createAuthController } from "./auth.controller.js";
+import { createAuthRouter } from "./auth.route.js";
+import { createAuthRepository } from "./auth.repository.js";
+import { createAuthService } from "./auth.service.js";
+import { createUserRepository } from "../user/user.repository.js";
 
-export class AuthModule {
-  public create() {
-    const userRepository = new UserRepository();
-    const authRepository = new AuthRepository();
-    const authService = new AuthService(userRepository, authRepository);
-    const authController = new AuthController(authService);
+export const createAuthModule = () => {
+  const userRepository = createUserRepository();
+  const authRepository = createAuthRepository();
+  const authService = createAuthService({
+    userRepo: userRepository,
+    authRepo: authRepository,
+  });
+  const authController = createAuthController(authService);
 
-    return {
-      path: "/api/auth",
-      router: new AuthRouter(authController).getRouter(),
-    };
-  }
-}
+  return {
+    path: "/api/auth",
+    router: createAuthRouter(authController),
+  };
+};
 
-export const createAuthRouter = () => new AuthModule().create().router;
+export const getAuthRouter = () => createAuthModule().router;

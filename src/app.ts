@@ -6,59 +6,58 @@ import express, {
 import cors from "cors";
 import cookieParser from "cookie-parser";
 
-import { errorHandler } from "./middlewares/errorHandler.middleware.js";
+import { handleError } from "./middlewares/errorHandler.middleware.js";
 import { FRONTEND_URL, PORT } from "./config/config.js";
 import helmet from "helmet";
-import { AppError } from "./class/appError.js";
+import { createAppError } from "./class/appError.js";
 import type { AppModule } from "./types/module.type.js";
 
-export default class App {
-  private app: Application;
+const initializeMiddleware = (app: Application) => {
+  app.disable("x-powered-by");
+  app.use(cookieParser());
+  app.use(
+    cors({
+      origin: FRONTEND_URL,
+      credentials: true,
+    }),
+  );
+  app.use(helmet());
+  app.use(express.json());
+};
 
-  constructor(private modules: AppModule[]) {
-    this.app = express();
-    this.initializeMiddleware();
-    this.initializeRoute();
-    this.initializeNotFoundHandler();
-    this.initializeErrorHandler();
+const initializeRoute = (app: Application, modules: AppModule[]) => {
+  app.get("/", (_req: Request, res: Response) => {
+    res.send(`Your API is running on port: ${PORT}`);
+  });
+
+  for (const { path, router } of modules) {
+    app.use(path, router);
   }
+};
 
-  private initializeMiddleware = () => {
-    this.app.disable("x-powered-by");
-    this.app.use(cookieParser());
-    this.app.use(
-      cors({
-        origin: FRONTEND_URL,
-        credentials: true,
-      }),
-    );
-    this.app.use(helmet());
-    this.app.use(express.json());
-  };
+const initializeNotFoundHandler = (app: Application) => {
+  app.use((_req, _res, next) => {
+    next(createAppError(404, "Route not found"));
+  });
+};
 
-  private initializeRoute = () => {
-    this.app.get("/", (_req: Request, res: Response) => {
-      res.send(`Your API is running on port: ${PORT}`);
-    });
+const initializeErrorHandler = (app: Application) => {
+  app.use(handleError);
+};
 
-    for (const { path, router } of this.modules) {
-      this.app.use(path, router);
-    }
-  };
+export const createApp = (modules: AppModule[]) => {
+  const app = express();
 
-  private initializeNotFoundHandler = () => {
-    this.app.use((_req, _res, next) => {
-      next(new AppError(404, "Route not found"));
-    });
-  };
+  initializeMiddleware(app);
+  initializeRoute(app, modules);
+  initializeNotFoundHandler(app);
+  initializeErrorHandler(app);
 
-  private initializeErrorHandler = () => {
-    this.app.use(errorHandler.handle);
-  };
+  return app;
+};
 
-  public start = () => {
-    this.app.listen(PORT, () => {
-      console.log(`server is running on port ${PORT}`);
-    });
-  };
-}
+export const startApp = (app: Application) => {
+  return app.listen(PORT, () => {
+    console.log(`server is running on port ${PORT}`);
+  });
+};

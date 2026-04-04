@@ -1,20 +1,25 @@
-export class StringGenerator {
-  public static Excerpt = (content: string, maxLength: number = 60) => {
-    const sanitized = content.replace(/\s+/g, " ").trim();
-    if (sanitized.length <= maxLength) return sanitized;
-    return sanitized.slice(0, maxLength) + "...";
-  };
+export const createExcerpt = (
+  content: string,
+  maxLength: number = 60,
+): string => {
+  const sanitized = content.replace(/\s+/g, " ").trim();
 
-  public static Slug = (str: string): string => {
-    const baseSlug = str
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, "")
-      .replace(/\s+/g, "-")
-      .replace(/-+/g, "-");
+  if (sanitized.length <= maxLength) {
+    return sanitized;
+  }
 
-    const uniqueSuffix = Date.now().toString().slice(-4);
+  return `${sanitized.slice(0, maxLength)}...`;
+};
 
-    return baseSlug ? `${baseSlug}-${uniqueSuffix}` : `post-${uniqueSuffix}`;
-  };
-}
+export const createSlug = (str: string): string => {
+  const baseSlug = str
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+
+  const uniqueSuffix = Date.now().toString().slice(-4);
+
+  return baseSlug ? `${baseSlug}-${uniqueSuffix}` : `post-${uniqueSuffix}`;
+};

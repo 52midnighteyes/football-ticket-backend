@@ -1,4 +1,3 @@
-import { gte } from "zod";
 import { prisma } from "../../libs/prisma/prisma.lib.js";
 import type { TPrisma } from "../../libs/prisma/prisma.types.js";
 
@@ -8,31 +7,25 @@ type CreateRefreshTokenParams = {
   expiresAt: Date;
 };
 
-export class AuthRepository {
-  private db: TPrisma;
-
-  constructor() {
-    this.db = prisma;
-  }
-
-  public createRefreshToken = async (
+export const createAuthRepository = (db: TPrisma = prisma) => {
+  const createRefreshToken = async (
     params: CreateRefreshTokenParams,
-    db: TPrisma = this.db,
+    tx: TPrisma = db,
   ) => {
-    return db.refreshToken.create({
+    return tx.refreshToken.create({
       data: params,
     });
   };
 
-  public findRefreshTokenByHashedToken = async (
+  const findRefreshTokenByHashedToken = async (
     hashedToken: string,
-    db: TPrisma = this.db,
+    tx: TPrisma = db,
   ) => {
-    return db.refreshToken.findUnique({
+    return tx.refreshToken.findFirst({
       where: {
         hashedToken,
         expiresAt: {
-          gte: new Date(Date.now()),
+          gte: new Date(),
         },
       },
       include: {
@@ -41,14 +34,22 @@ export class AuthRepository {
     });
   };
 
-  public deleteRefreshTokenByHashedToken = async (
+  const deleteRefreshTokenByHashedToken = async (
     hashedToken: string,
-    db: TPrisma = this.db,
+    tx: TPrisma = db,
   ) => {
-    return db.refreshToken.delete({
+    return tx.refreshToken.delete({
       where: {
         hashedToken,
       },
     });
   };
-}
+
+  return {
+    createRefreshToken,
+    findRefreshTokenByHashedToken,
+    deleteRefreshTokenByHashedToken,
+  };
+};
+
+export type AuthRepository = ReturnType<typeof createAuthRepository>;

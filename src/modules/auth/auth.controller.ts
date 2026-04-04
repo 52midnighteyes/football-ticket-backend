@@ -1,15 +1,13 @@
-import { Request, Response, NextFunction } from "express";
-import AuthService from "./auth.service.js";
-import { TLoginParams, TRegisterParams } from "./auth.schemas.js";
+import type { Request, Response, NextFunction } from "express";
+import type { AuthService } from "./auth.service.js";
+import type { TLoginParams, TRegisterParams } from "./auth.schemas.js";
 import { refreshTokenConfig } from "../../constant/cookie-options.constant.js";
 
-export default class AuthController {
-  constructor(private authService: AuthService) {}
-
-  public register = async (req: Request, res: Response, next: NextFunction) => {
+export const createAuthController = (authService: AuthService) => {
+  const register = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const payload = req.validated?.body as TRegisterParams;
-      const data = await this.authService.register(payload);
+      const data = await authService.register(payload);
 
       res.status(201).json({ message: "Register success", data });
     } catch (error) {
@@ -17,10 +15,10 @@ export default class AuthController {
     }
   };
 
-  public login = async (req: Request, res: Response, next: NextFunction) => {
+  const login = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const payload = req.validated?.body as TLoginParams;
-      const { data, refreshToken } = await this.authService.login(payload);
+      const { data, refreshToken } = await authService.login(payload);
 
       res.cookie("refreshToken", refreshToken, refreshTokenConfig);
 
@@ -30,7 +28,7 @@ export default class AuthController {
     }
   };
 
-  public refreshToken = async (
+  const refreshToken = async (
     req: Request,
     res: Response,
     next: NextFunction,
@@ -44,7 +42,7 @@ export default class AuthController {
       }
 
       const { refreshToken, data } =
-        await this.authService.refreshToken(oldRefreshToken);
+        await authService.refreshToken(oldRefreshToken);
 
       if (!refreshToken) {
         res.clearCookie("refreshToken", refreshTokenConfig);
@@ -58,14 +56,14 @@ export default class AuthController {
     }
   };
 
-  public logout = async (req: Request, res: Response, next: NextFunction) => {
+  const logout = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const oldRefreshToken = req.cookies.refreshToken;
       if (!oldRefreshToken) {
         res.clearCookie("refreshToken", refreshTokenConfig);
         return res.status(200).json({ message: "logout successfull!" });
       }
-      await this.authService.logout(oldRefreshToken);
+      await authService.logout(oldRefreshToken);
 
       res.clearCookie("refreshToken", refreshTokenConfig);
       res.status(200).json({ message: "logout successfull!" });
@@ -73,4 +71,13 @@ export default class AuthController {
       next(error);
     }
   };
-}
+
+  return {
+    register,
+    login,
+    refreshToken,
+    logout,
+  };
+};
+
+export type AuthController = ReturnType<typeof createAuthController>;
