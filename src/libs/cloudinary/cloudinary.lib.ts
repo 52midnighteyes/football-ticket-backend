@@ -35,10 +35,10 @@ class CloudinaryConfig {
     });
   };
 
-  public delete = async (secure_url: string) => {
+  public delete = async (public_id: string) => {
     try {
       const action: UploadApiResponse =
-        await cloudinary.uploader.destroy(secure_url);
+        await cloudinary.uploader.destroy(public_id);
       if (action.result !== "ok") {
         throw new AppError(
           500,

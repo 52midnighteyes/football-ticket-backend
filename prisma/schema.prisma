@@ -7,55 +7,28 @@ datasource db {
   provider = "postgresql"
 }
 
+
 enum UserRole {
-  USER 
   ADMIN
+  ORGANIZER
+  USER
 }
 
-enum BlogCategory {
-MATCH
-PLAYER
-TRANSFER
-NEWS
-FANS
-HISTORY
-TRAINING
-EVENT
-MERCH
-}
 
 model User {
   id String @id @default(uuid())
-  email String @unique
+  avatarUrl String? @map("avatar_url")
+  avatarPublicId String? @map("avatar_public_id")
   firstName String @map("first_name")
   lastName String  @map("last_name")
+  email String @unique
   password String
   role UserRole
-  posts Blog[]
-  refreshToken RefreshToken[]
+  
+  refreshToken RefreshToken[] 
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
-
-  @@index([id, email])
-}
-
-model Blog {
-  id String @id @default(uuid())
-  image String
-  imagePublicId String //forgot to add @map("image_public_id") in the previous version(will fix before production since there's already data in the database)
-  title String @unique
-  slug String @unique
-  excerpt String
-  content String
-  category BlogCategory
-  isPublished Boolean @default(false) @map("is_published")
-  author User @relation(fields: [authorId], references: [id])
-  authorId String @map("author_id")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
-  @@index([id, slug])
 }
 
 
@@ -67,87 +40,3 @@ model RefreshToken {
   expiresAt DateTime @map("expires_at")
   createdAt DateTime @default(now())
 }
-
-model ContactForm {
-  id String @id @default(uuid())
-  email String
-  message String
-  isResponded Boolean @default(false)
-  createdAt DateTime @default(now())
-}
-
-
-enum PlayerPosition {
-  GOAL_KEEPER
-  DEFENDER
-  MIDFIELDER
-  ATTACKER
-}
-
-model Players {
-  id String @id @default(uuid())
-  fullName String @map("full_name")
-  jerseyNumber Int @unique @map("jersey_number")
-  nationality String
-  position PlayerPosition
-  avatar String?
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
-}
-
-enum StaffRole {    
-  MANAGER
-  HEAD_COACH
-  ASSISTANT_COACH
-  GOALKEEPER_COACH
-  FITNESS_COACH
-  PHYSIOTHERAPIST
-  TEAM_DOCTOR
-  ANALYST
-  KIT_MANAGER
-  ADMINISTRATOR
-}
-
-model Staff {
-  id String @id @default(uuid())
-  fullName String @map("full_name")
-  nationality String
-  staffRole StaffRole @map("staff_role")
-  avatar String?
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
-}
-
-enum matchStatus {
-  SCHEDULED
-  ONGOING
-  COMPLETED
-  POSTPONED
-  CANCELED
-}
-
-enum MatchType {
-  HOME
-  AWAY
-}
-
-model Match {
-  id String @id @default(uuid())
-  opponent String
-  matchDate DateTime @map("match_date")
-  matchType MatchType @map("match_type")
-  status matchStatus
-  opponentLogo String @map("opponent_logo")
-  opponentLogoPublicId String @map("opponent_logo_public_id")
-  location String
-  season String
-  opponentScore Int? @map("opponent_score")
-  teamScore Int? @map("team_score")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
-}
-
-

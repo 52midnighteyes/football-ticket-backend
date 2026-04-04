@@ -6,25 +6,16 @@ class EnvConfig {
   public readonly JWT_SECRET: string;
   public readonly NODE_ENV: string;
   public readonly DATABASE_URL: string;
-  public readonly DIRECT_URL: string;
-  public readonly CLOUDINARY_CLOUD_NAME: string;
-  public readonly CLOUDINARY_API_SECRET: string;
-  public readonly CLOUDINARY_API_KEY: string;
-  public readonly REFRESH_TOKEN_SECRET: string;
   public readonly FRONTEND_URL: string;
+  public readonly REFRESH_TOKEN_SECRET: string;
 
   constructor() {
     this.PORT = this.toNumber("PORT", 8080);
     this.JWT_SECRET = this.required("JWT_SECRET");
     this.NODE_ENV = process.env.NODE_ENV || "development";
     this.DATABASE_URL = this.required("DATABASE_URL");
-    this.DIRECT_URL = this.required("DIRECT_URL");
-    this.CLOUDINARY_CLOUD_NAME = this.required("CLOUDINARY_CLOUD_NAME");
-    this.CLOUDINARY_API_SECRET = this.required("CLOUDINARY_API_SECRET");
-    this.CLOUDINARY_API_KEY = this.required("CLOUDINARY_API_KEY");
+    this.FRONTEND_URL = process.env.FRONTEND_URL || `http://localhost:3000`;
     this.REFRESH_TOKEN_SECRET = this.required("REFRESH_TOKEN_SECRET");
-    this.FRONTEND_URL =
-      process.env.FRONTEND_URL || `http://localhost:${this.PORT}`;
   }
 
   private required(name: string): string {
@@ -57,10 +48,6 @@ export const {
   JWT_SECRET,
   NODE_ENV,
   DATABASE_URL,
-  DIRECT_URL,
-  CLOUDINARY_API_KEY,
-  CLOUDINARY_API_SECRET,
-  CLOUDINARY_CLOUD_NAME,
-  REFRESH_TOKEN_SECRET,
   FRONTEND_URL,
+  REFRESH_TOKEN_SECRET,
 } = env;

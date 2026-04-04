@@ -1,11 +1,11 @@
-export class StringConverter {
-  public static createExcerpt = (content: string, maxLength: number = 60) => {
+export class StringGenerator {
+  public static Excerpt = (content: string, maxLength: number = 60) => {
     const sanitized = content.replace(/\s+/g, " ").trim();
     if (sanitized.length <= maxLength) return sanitized;
     return sanitized.slice(0, maxLength) + "...";
   };
 
-  public static createSlug = (str: string): string => {
+  public static Slug = (str: string): string => {
     const baseSlug = str
       .trim()
       .toLowerCase()

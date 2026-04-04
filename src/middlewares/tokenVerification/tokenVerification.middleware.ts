@@ -3,7 +3,7 @@ import { AppError } from "../../class/appError.js";
 import Jwt from "jsonwebtoken";
 import { JWT_SECRET } from "../../config/config.js";
 import type { IUserParams } from "../../custom.js";
-import { verifiedTokenSchema } from "./tokenVerification.schema.js";
+import { accessTokenSchema } from "./tokenVerification.schema.js";
 class AuthMiddleware {
   public accessToken = async (
     req: Request,
@@ -19,7 +19,7 @@ class AuthMiddleware {
         throw new AppError(401, "Invalid Authorization header format", true);
       }
 
-      const verification = verifiedTokenSchema.parse(
+      const verification = accessTokenSchema.parse(
         Jwt.verify(token, JWT_SECRET),
       );
 

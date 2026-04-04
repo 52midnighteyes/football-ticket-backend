@@ -1,9 +1,11 @@
+import type { UserRole } from "../generated/prisma/enums.js";
+
 export interface IUserParams {
   id: string;
   email: string;
   firstName: string;
   lastName: string;
-  role: string;
+  role: UserRole;
 }
 
 export interface IValidatedRequest {

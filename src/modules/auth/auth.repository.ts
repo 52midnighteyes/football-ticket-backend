@@ -1,70 +1,54 @@
-import { argon2id } from "argon2";
-import { prisma as db } from "../../libs/prisma/prisma.lib.js";
+import { gte } from "zod";
+import { prisma } from "../../libs/prisma/prisma.lib.js";
 import type { TPrisma } from "../../libs/prisma/prisma.types.js";
-import type {
-  ICreateRefreshTokenDbParams,
-  IRegisterParams,
-} from "./auth.interface.js";
-import type { ICreateBlogDbParams } from "../blog/blog.interface.js";
 
-class AuthRepository {
-  prisma: TPrisma;
+type CreateRefreshTokenParams = {
+  hashedToken: string;
+  userId: string;
+  expiresAt: Date;
+};
+
+export class AuthRepository {
+  private db: TPrisma;
+
   constructor() {
-    this.prisma = db;
+    this.db = prisma;
   }
 
-  public createUser = async (params: IRegisterParams) => {
-    const user = await this.prisma.user.create({
-      data: {
-        ...params,
-      },
-      omit: {
-        password: true,
-        updatedAt: true,
-        createdAt: true,
-        deletedAt: true,
-      },
-    });
-
-    return user;
-  };
-
-  public createRefreshToken = async (params: ICreateRefreshTokenDbParams) => {
-    return await this.prisma.refreshToken.create({
+  public createRefreshToken = async (
+    params: CreateRefreshTokenParams,
+    db: TPrisma = this.db,
+  ) => {
+    return db.refreshToken.create({
       data: params,
     });
   };
 
-  public findHashedToken = async (hashedToken: string) => {
-    return await this.prisma.refreshToken.findUnique({
-      where: { hashedToken, expiresAt: { gt: new Date() } },
-    });
-  };
-
-  public rotateRefreshToken = async (
-    oldHashedRefreshToken: string,
-    newRefreshTokenData: ICreateRefreshTokenDbParams,
+  public findRefreshTokenByHashedToken = async (
+    hashedToken: string,
+    db: TPrisma = this.db,
   ) => {
-    await this.prisma.$transaction(async (tx) => {
-      await tx.refreshToken.delete({
-        where: {
-          hashedToken: oldHashedRefreshToken,
+    return db.refreshToken.findUnique({
+      where: {
+        hashedToken,
+        expiresAt: {
+          gte: new Date(Date.now()),
         },
-      });
-
-      await tx.refreshToken.create({
-        data: newRefreshTokenData,
-      });
+      },
+      include: {
+        user: true,
+      },
     });
   };
 
-  public deleteRefreshTokenOnLogOut = async (hashedToken: string) => {
-    return await this.prisma.refreshToken.deleteMany({
+  public deleteRefreshTokenByHashedToken = async (
+    hashedToken: string,
+    db: TPrisma = this.db,
+  ) => {
+    return db.refreshToken.delete({
       where: {
         hashedToken,
       },
     });
   };
 }
-
-export const authRepo = new AuthRepository();

@@ -1,27 +1,32 @@
-import { prisma as db } from "../../libs/prisma/prisma.lib.js";
+import { UserCreateInput } from "../../../generated/prisma/models.js";
+import { prisma } from "../../libs/prisma/prisma.lib.js";
 import type { TPrisma } from "../../libs/prisma/prisma.types.js";
+import type { TRegisterParams } from "../auth/auth.schemas.js";
 
-class UserRepository {
-  prisma: TPrisma;
+export default class UserRepository {
+  private db: TPrisma;
 
   constructor() {
-    this.prisma = db;
+    this.db = prisma;
   }
 
   public findUserByEmail = async (email: string) => {
-    return await this.prisma.user.findUnique({
+    return this.db.user.findUnique({
       where: {
         email,
-        deletedAt: null,
       },
     });
   };
 
   public findUserById = async (id: string) => {
-    return await this.prisma.user.findUnique({
-      where: { id, deletedAt: null },
+    return this.db.user.findUnique({
+      where: { id },
+    });
+  };
+
+  public createUser = async (data: UserCreateInput) => {
+    return this.db.user.create({
+      data,
     });
   };
 }
-
-export const userRepo = new UserRepository();

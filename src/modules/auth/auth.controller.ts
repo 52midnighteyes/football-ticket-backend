@@ -1,18 +1,17 @@
-import { type Response, type Request, type NextFunction } from "express";
-import type { ILoginParams, IRegisterParams } from "./auth.interface.js";
-import { authService } from "./auth.service.js";
-import { NODE_ENV } from "../../config/config.js";
-import { AppError } from "../../class/appError.js";
+import { Request, Response, NextFunction } from "express";
+import AuthService from "./auth.service.js";
+import { TLoginParams, TRegisterParams } from "./auth.schemas.js";
+import { refreshTokenConfig } from "../../constant/cookie-options.constant.js";
 
-class AuthController {
+export default class AuthController {
+  constructor(private authService: AuthService) {}
+
   public register = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const payload = req.validated!.body as IRegisterParams;
-      const data = await authService.Register(payload);
-      res.status(201).json({
-        message: "User registered successfully",
-        data,
-      });
+      const payload = req.validated?.body as TRegisterParams;
+      const data = await this.authService.register(payload);
+
+      res.status(201).json({ message: "Register success", data });
     } catch (error) {
       next(error);
     }
@@ -20,21 +19,12 @@ class AuthController {
 
   public login = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const payload = req.validated!.body as ILoginParams;
-      const {
-        cookie: { refreshToken, maxAge },
-        data,
-      } = await authService.Login(payload);
+      const payload = req.validated?.body as TLoginParams;
+      const { data, refreshToken } = await this.authService.login(payload);
 
-      res.cookie("refreshToken", refreshToken, {
-        httpOnly: true,
-        secure: NODE_ENV === "production",
-        sameSite: "none",
-        maxAge,
-        path: "/api/auth",
-      });
+      res.cookie("refreshToken", refreshToken, refreshTokenConfig);
 
-      res.status(201).json({ message: "Login Success!", data });
+      res.status(200).json({ message: "Login success", data });
     } catch (error) {
       next(error);
     }
@@ -46,50 +36,41 @@ class AuthController {
     next: NextFunction,
   ) => {
     try {
-      const refToken = req.cookies.refreshToken;
-      const {
-        cookie: { refreshToken, maxAge },
-        data,
-      } = await authService.refreshToken(refToken);
+      const oldRefreshToken = req.cookies.refreshToken;
 
-      if (!refreshToken) {
-        throw new AppError(401, "Refresh token is required");
+      if (!oldRefreshToken) {
+        res.clearCookie("refreshToken", refreshTokenConfig);
+        return res.status(401).json({ message: "Invalid refresh token" });
       }
 
-      res.cookie("refreshToken", refreshToken, {
-        httpOnly: true,
-        secure: NODE_ENV === "production",
-        sameSite: "none",
-        maxAge,
-        path: "/api/auth",
-      });
+      const { refreshToken, data } =
+        await this.authService.refreshToken(oldRefreshToken);
 
+      if (!refreshToken) {
+        res.clearCookie("refreshToken", refreshTokenConfig);
+        return res.status(401).json({ message: "Invalid refresh token" });
+      }
+
+      res.cookie("refreshToken", refreshToken, refreshTokenConfig);
       res.status(200).json({ message: "Token refreshed successfully", data });
     } catch (error) {
       next(error);
     }
   };
 
-  public logOut = async (req: Request, res: Response, next: NextFunction) => {
+  public logout = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const refToken = req.cookies?.refreshToken;
-
-      if (refToken) {
-        await authService.logOut(refToken);
+      const oldRefreshToken = req.cookies.refreshToken;
+      if (!oldRefreshToken) {
+        res.clearCookie("refreshToken", refreshTokenConfig);
+        return res.status(200).json({ message: "logout successfull!" });
       }
+      await this.authService.logout(oldRefreshToken);
 
-      res.clearCookie("refreshToken", {
-        httpOnly: true,
-        secure: NODE_ENV === "production",
-        sameSite: NODE_ENV === "production" ? "none" : "lax",
-        path: "/api/auth",
-      });
-
-      res.status(200).json({ message: "Logged out successfully" });
+      res.clearCookie("refreshToken", refreshTokenConfig);
+      res.status(200).json({ message: "logout successfull!" });
     } catch (error) {
       next(error);
     }
   };
 }
-
-export const authController = new AuthController();

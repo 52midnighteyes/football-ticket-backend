@@ -1,5 +1,5 @@
 import express, {
-  type NextFunction,
+  type Application,
   type Request,
   type Response,
 } from "express";
@@ -7,48 +7,58 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 
 import { errorHandler } from "./middlewares/errorHandler.middleware.js";
-import { FRONTEND_URL, NODE_ENV, PORT } from "./config/config.js";
-import { authRoutes } from "./modules/auth/auth.routes.js";
-import { blogRoutes } from "./modules/blog/blog.routes.js";
-import { matchRouter } from "./modules/match/match.routes.js";
+import { FRONTEND_URL, PORT } from "./config/config.js";
+import helmet from "helmet";
+import { AppError } from "./class/appError.js";
+import type { AppModule } from "./types/module.type.js";
 
-const app = express();
+export default class App {
+  private app: Application;
 
-app.use(
-  cors({
-    origin: FRONTEND_URL,
-    credentials: true,
-  }),
-);
-app.use(cookieParser());
-app.use(express.json());
+  constructor(private modules: AppModule[]) {
+    this.app = express();
+    this.initializeMiddleware();
+    this.initializeRoute();
+    this.initializeNotFoundHandler();
+    this.initializeErrorHandler();
+  }
 
-app.use((req: Request, _res: Response, next: NextFunction) => {
-  const isProd = NODE_ENV === "production";
-  if (isProd) return next();
+  private initializeMiddleware = () => {
+    this.app.disable("x-powered-by");
+    this.app.use(cookieParser());
+    this.app.use(
+      cors({
+        origin: FRONTEND_URL,
+        credentials: true,
+      }),
+    );
+    this.app.use(helmet());
+    this.app.use(express.json());
+  };
 
-  console.log("===== Incoming Request =====");
-  console.log("Time     :", new Date().toISOString());
-  console.log("Method   :", req.method);
-  console.log("URL      :", req.originalUrl);
-  console.log("Headers  :", req.headers);
-  console.log("Body     :", req.body);
-  console.log("Query    :", req.query);
-  console.log("File     :", req.file);
-  console.log("refreshToken :", req.cookies.refreshToken);
-  console.log("============================\n");
+  private initializeRoute = () => {
+    this.app.get("/", (_req: Request, res: Response) => {
+      res.send(`Your API is running on port: ${PORT}`);
+    });
 
-  next();
-});
+    for (const { path, router } of this.modules) {
+      this.app.use(path, router);
+    }
+  };
 
-app.get("/", (_req: Request, res: Response) => {
-  res.send(`Your API is running on port: ${PORT}`);
-});
+  private initializeNotFoundHandler = () => {
+    this.app.use((_req, _res, next) => {
+      next(new AppError(404, "Route not found"));
+    });
+  };
 
-app.use("/api/auth", authRoutes);
-app.use("/api/blogs", blogRoutes);
-app.use("/api/matches", matchRouter);
+  private initializeErrorHandler = () => {
+    this.app.use(errorHandler.handle);
+  };
 
-app.use(errorHandler.handle);
-
-export default app;
+  public start = () => {
+    this.app.listen(PORT, () => {
+      console.log(`server is running on port ${PORT}`);
+    });
+  };
+}
