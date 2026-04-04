@@ -1,28 +1,16 @@
-export type AppError = Error & {
-  statusCode: number;
-  isOperational: boolean;
-};
+export class AppError extends Error {
+  public statusCode: number;
+  public isOperational: boolean;
 
-export const createAppError = (
-  statusCode: number,
-  message: string,
-  isOperational: boolean = true,
-): AppError => {
-  const error = new Error(message) as AppError;
+  constructor(
+    statusCode: number,
+    message: string,
+    isOperational: boolean = true
+  ) {
+    super(message);
+    (this.statusCode = statusCode), (this.isOperational = isOperational);
 
-  error.name = "AppError";
-  error.statusCode = statusCode;
-  error.isOperational = isOperational;
-
-  return error;
-};
-
-export const isAppError = (error: unknown): error is AppError => {
-  return (
-    error instanceof Error &&
-    "statusCode" in error &&
-    "isOperational" in error &&
-    typeof error.statusCode === "number" &&
-    typeof error.isOperational === "boolean"
-  );
-};
+    Object.setPrototypeOf(this, new.target.prototype);
+    Error.captureStackTrace?.(this, this.constructor);
+  }
+}

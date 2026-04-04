@@ -10,3 +10,5 @@ export const accessTokenSchema = z.object({
     message: "user role from token is invalid",
   }),
 });
+
+export type AccessTokenPayload = z.infer<typeof accessTokenSchema>;

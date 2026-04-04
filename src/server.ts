@@ -1,5 +1,4 @@
-import { createApp, startApp } from "./app.js";
-import { createModules } from "./modules/index.js";
+import app from "./app.js";
+import { PORT } from "./config/config.js";
 
-const app = createApp(createModules());
-startApp(app);
+app.listen(PORT, () => `server running on port ${PORT}`);

@@ -1,25 +1,25 @@
 import { Router } from "express";
-import type { AuthController } from "./auth.controller.js";
 import { validateSchema } from "../../middlewares/zodValidator.middleware.js";
 import { loginSchema, registerUserSchema } from "./auth.schemas.js";
+import {
+  loginController,
+  logoutController,
+  refreshTokenController,
+  registerController,
+} from "./auth.controller.js";
 
-export const createAuthRouter = (authController: AuthController) => {
-  const router = Router();
+const router = Router();
 
-  router.post(
-    "/register",
-    validateSchema(registerUserSchema, "body"),
-    authController.register,
-  );
-  router.post(
-    "/login",
-    validateSchema(loginSchema, "body"),
-    authController.login,
-  );
+router.post(
+  "/register",
+  validateSchema(registerUserSchema, "body"),
+  registerController
+);
 
-  router.post("/refresh-token", authController.refreshToken);
+router.post("/login", validateSchema(loginSchema, "body"), loginController);
 
-  router.post("/logout", authController.logout);
+router.post("/refresh-token", refreshTokenController);
 
-  return router;
-};
+router.post("/logout", logoutController);
+
+export default router;
