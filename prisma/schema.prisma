@@ -29,6 +29,7 @@ model User {
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 }
 
 
@@ -37,6 +38,8 @@ model RefreshToken {
   hashedToken String @unique @map("hashed_token")
   user User @relation(fields: [userId], references: [id])
   userId String @map("user_id")
+  usedAt DateTime? @map("used_at")
+  revokedAt DateTime? @map("revoked_at")
   expiresAt DateTime @map("expires_at")
   createdAt DateTime @default(now())
 }

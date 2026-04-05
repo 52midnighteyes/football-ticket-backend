@@ -7,6 +7,8 @@ import helmet from "helmet";
 import { AppError } from "./class/appError.js";
 import { errorHandler } from "./middlewares/errorHandler.middleware.js";
 
+import AuthRouter from "./modules/auth/auth.route.js";
+
 const app = express();
 
 //middleware
@@ -16,7 +18,7 @@ app.use(
   cors({
     origin: FRONTEND_URL,
     credentials: true,
-  })
+  }),
 );
 app.use(helmet());
 app.use(express.json());
@@ -26,6 +28,9 @@ app.get("/", (_req: Request, res: Response) => {
   res.send(`Your API is running on port: ${PORT}`);
 });
 
+app.use("/api/auth", AuthRouter);
+
+//route not found handler
 app.use((_req, _res, next) => {
   next(new AppError(404, "Route not found"));
 });
