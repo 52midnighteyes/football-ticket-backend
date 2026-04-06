@@ -17,6 +17,9 @@ import { FOURTEEN_DAYS_IN_MS } from "../../constant/time.constant.js";
 import { prisma } from "../../libs/prisma/prisma.lib.js";
 import { createUser, findUserByEmail } from "../user/user.repository.js";
 import { AppError } from "../../class/appError.js";
+import { compileHandlebars } from "../../helper/handlebars.js";
+import { EMAIL_TEMPLATES_DIR } from "../../helper/path.js";
+import { sendMail } from "../../libs/mailer/nodemailer.libs.js";
 
 export const registerService = async (params: TRegisterParams) => {
   const checkUser = await findUserByEmail(params.email);
@@ -30,12 +33,17 @@ export const registerService = async (params: TRegisterParams) => {
     password: hashedPass,
   });
 
+  const welcomeMessage = "Welcome to MATCHPASS";
   const user = toUserPayload(createdUser);
+  const html = await compileHandlebars(
+    EMAIL_TEMPLATES_DIR,
+    "register.mail.hbs",
+    {
+      name: `${user.firstName} ${user.lastName}`,
+    },
+  );
 
-  return {
-    accessToken: generateAccessToken(user),
-    user,
-  };
+  await sendMail(user.email, welcomeMessage, html);
 };
 
 export const loginService = async (params: TLoginParams) => {

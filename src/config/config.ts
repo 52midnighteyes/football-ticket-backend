@@ -33,3 +33,5 @@ export const NODE_ENV = process.env.NODE_ENV || "development";
 export const DATABASE_URL = getRequiredEnv("DATABASE_URL");
 export const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
 export const REFRESH_TOKEN_SECRET = getRequiredEnv("REFRESH_TOKEN_SECRET");
+export const NODEMAILER_EMAIL = getRequiredEnv("NODEMAILER_EMAIL");
+export const NODEMAILER_PASS = getRequiredEnv("NODEMAILER_PASS");

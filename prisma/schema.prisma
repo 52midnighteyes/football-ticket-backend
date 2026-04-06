@@ -7,39 +7,36 @@ datasource db {
   provider = "postgresql"
 }
 
-
 enum UserRole {
   ADMIN
   ORGANIZER
   USER
 }
 
-
 model User {
-  id String @id @default(uuid())
-  avatarUrl String? @map("avatar_url")
-  avatarPublicId String? @map("avatar_public_id")
-  firstName String @map("first_name")
-  lastName String  @map("last_name")
-  email String @unique
-  password String
-  role UserRole
-  
-  refreshToken RefreshToken[] 
+  id             String   @id @default(uuid())
+  avatarUrl      String?  @map("avatar_url")
+  avatarPublicId String?  @map("avatar_public_id")
+  firstName      String   @map("first_name")
+  lastName       String   @map("last_name")
+  email          String   @unique
+  password       String
+  role           UserRole
 
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  refreshToken RefreshToken[]
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
 }
 
-
 model RefreshToken {
-  id String @id @default(uuid())
-  hashedToken String @unique @map("hashed_token")
-  user User @relation(fields: [userId], references: [id])
-  userId String @map("user_id")
-  usedAt DateTime? @map("used_at")
-  revokedAt DateTime? @map("revoked_at")
-  expiresAt DateTime @map("expires_at")
-  createdAt DateTime @default(now())
+  id          String    @id @default(uuid())
+  hashedToken String    @unique @map("hashed_token")
+  user        User      @relation(fields: [userId], references: [id])
+  userId      String    @map("user_id")
+  usedAt      DateTime? @map("used_at")
+  revokedAt   DateTime? @map("revoked_at")
+  expiresAt   DateTime  @map("expires_at")
+  createdAt   DateTime  @default(now())
 }
