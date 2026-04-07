@@ -6,18 +6,23 @@ import {
   logoutService,
   refreshTokenService,
   registerService,
+  verifyUserService,
 } from "./auth.service.js";
 
 export const registerController = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
-    const payload = req.validated?.body as TRegisterParams;
-    const data = await registerService(payload);
+    const payload = req.validated?.body;
+    const bool = await registerService(payload as TRegisterParams);
 
-    res.status(201).json({ message: "Register success", data });
+    res.status(201).json({
+      message: bool
+        ? "Register success"
+        : "Register success, verification email was not sent",
+    });
   } catch (error) {
     next(error);
   }
@@ -26,7 +31,7 @@ export const registerController = async (
 export const loginController = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const payload = req.validated?.body as TLoginParams;
@@ -43,7 +48,7 @@ export const loginController = async (
 export const refreshTokenController = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const oldRefreshToken = req.cookies.refreshToken;
@@ -70,7 +75,7 @@ export const refreshTokenController = async (
 export const logoutController = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const oldRefreshToken = req.cookies.refreshToken;
@@ -82,6 +87,20 @@ export const logoutController = async (
 
     res.clearCookie("refreshToken", refreshTokenConfig);
     res.status(200).json({ message: "logout successfull!" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const verifyUserController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { token } = req.validated?.params as { token: string };
+    await verifyUserService(token);
+    res.status(201).json({ message: "Verify success" });
   } catch (error) {
     next(error);
   }

@@ -1,5 +1,6 @@
 import * as z from "zod";
 import { UserRole } from "../../../generated/prisma/enums.js";
+import { Multer } from "multer";
 
 export const registerUserSchema = z.object({
   email: z
@@ -17,10 +18,11 @@ export const registerUserSchema = z.object({
       "Password must be at least 8 characters long and include at least 1 uppercase letter, 1 number, and 1 special character",
     ),
   role: z
-    .enum([UserRole.USER, UserRole.ORGANIZER], {
+    .enum([UserRole.CUSTOMER, UserRole.ORGANIZER], {
       message: "Role must be USER or ORGANIZER",
     })
-    .default(UserRole.USER),
+    .default(UserRole.CUSTOMER),
+  referrerCode: z.string().optional(),
 });
 
 export const loginSchema = z.object({
@@ -29,6 +31,10 @@ export const loginSchema = z.object({
     .nonempty("Email is required")
     .trim(),
   password: z.string().nonempty("Password is required"),
+});
+
+export const verifyParamsSchema = z.object({
+  token: z.string().nonempty("Verification token is required"),
 });
 
 export type TLoginParams = z.infer<typeof loginSchema>;

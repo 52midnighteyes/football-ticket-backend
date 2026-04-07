@@ -1,4 +1,4 @@
-import express, { type Request, type Response } from "express";
+import express, { NextFunction, type Request, type Response } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 
@@ -8,6 +8,7 @@ import { AppError } from "./class/appError.js";
 import { errorHandler } from "./middlewares/errorHandler.middleware.js";
 
 import AuthRouter from "./modules/auth/auth.route.js";
+import { transporter } from "./libs/mailer/nodemailer.libs.js";
 
 const app = express();
 

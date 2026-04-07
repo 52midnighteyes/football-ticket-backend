@@ -3,15 +3,15 @@ import Jwt from "jsonwebtoken";
 import { JWT_SECRET } from "../../config/config.js";
 import type { IUserParams } from "../../custom.js";
 import {
-  AccessTokenPayload,
-  accessTokenSchema,
+  jwtTokenSchema,
+  type TJwtTokenPayload,
 } from "./tokenVerification.schema.js";
 import { AppError } from "../../class/appError.js";
 
 export const verifyAccessToken = async (
   req: Request,
   _res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const authHeader = req.header("Authorization");
@@ -24,8 +24,8 @@ export const verifyAccessToken = async (
       throw new AppError(401, "Invalid Authorization header format", true);
     }
 
-    const verification: AccessTokenPayload = accessTokenSchema.parse(
-      Jwt.verify(token, JWT_SECRET)
+    const verification: TJwtTokenPayload = jwtTokenSchema.parse(
+      Jwt.verify(token, JWT_SECRET),
     );
 
     req.user = verification;

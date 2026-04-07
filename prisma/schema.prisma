@@ -7,39 +7,321 @@ datasource db {
   provider = "postgresql"
 }
 
-
 enum UserRole {
-  ADMIN
+  CUSTOMER
   ORGANIZER
-  USER
+  ADMIN
 }
 
+enum TransactionStatus {
+  WAITING_FOR_PAYMENT
+  WAITING_FOR_ADMIN_CONFIRMATION
+  DONE
+  REJECTED
+  EXPIRED
+  CANCELED
+}
+
+enum PointHistoryType {
+  EARNED
+  USED
+  REFUNDED
+  EXPIRED
+}
+
+enum PointHistorySource {
+  REFERRAL_REWARD
+  TRANSACTION_USAGE
+  TRANSACTION_REFUND
+  SYSTEM_EXPIRE
+}
+
+enum CouponSource {
+  REFERRAL_REGISTER
+  SYSTEM
+}
+
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  CANCELED
+  COMPLETED
+}
 
 model User {
-  id String @id @default(uuid())
-  avatarUrl String? @map("avatar_url")
-  avatarPublicId String? @map("avatar_public_id")
-  firstName String @map("first_name")
-  lastName String  @map("last_name")
-  email String @unique
-  password String
-  role UserRole
-  
-  refreshToken RefreshToken[] 
+  id             String    @id @default(uuid()) 
+  firstName      String    @map("first_name") @db.VarChar(20)
+  lastName       String    @map("last_name") @db.VarChar(20)
+  email          String    @unique
+  passwordHash   String    @map("password_hash")
+  avatarUrl      String?   @map("avatar_url")
+  avatarPublicId String?   @map("avatar_public_id")
+  role           UserRole  @default(CUSTOMER)
+  referralCode   String    @unique @map("referral_code")
+  referrerUserId String?   @map("referrer_user_id")
+  isVerified     Boolean   @default(false) @map("is_verified")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
 
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
+  passwordResetTokens PasswordResetToken[]
+  refreshTokens       RefreshToken[]
+  pointHistories      PointHistory[]
+  coupons             Coupon[]
+  organizedEvents     Event[]
+  transactions        Transaction[]
+  tickets             Ticket[]
+  ratings             Rating[]
+  @@map("users")
 }
 
-
 model RefreshToken {
-  id String @id @default(uuid())
-  hashedToken String @unique @map("hashed_token")
-  user User @relation(fields: [userId], references: [id])
-  userId String @map("user_id")
-  usedAt DateTime? @map("used_at")
-  revokedAt DateTime? @map("revoked_at")
-  expiresAt DateTime @map("expires_at")
-  createdAt DateTime @default(now())
+  id          String    @id @default(uuid())
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String    @map("user_id") 
+  hashedToken String    @unique @map("hashed_token")
+  usedAt      DateTime? @map("used_at")
+  expiresAt   DateTime  @map("expires_at")
+  revokedAt   DateTime? @map("revoked_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@map("refresh_tokens")
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid()) 
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String    @map("user_id") 
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@map("password_reset_tokens")
+}
+
+model PointHistory {
+  id            String             @id @default(uuid()) 
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        String             @map("user_id") 
+  transaction   Transaction?       @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+  transactionId String?            @map("transaction_id") 
+  amount        Int
+  type          PointHistoryType
+  source        PointHistorySource
+  expiresAt     DateTime?          @map("expires_at")
+  createdAt     DateTime           @default(now()) @map("created_at")
+
+  @@map("point_histories")
+}
+
+model Coupon {
+  id           String       @id @default(uuid()) 
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String       @map("user_id") 
+  source       CouponSource @default(REFERRAL_REGISTER)
+  amount       Int
+  usedAt       DateTime?    @map("used_at")
+  expiresAt    DateTime     @map("expires_at")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+
+  transactions Transaction[]
+
+  @@map("coupons")
+}
+
+model Country {
+  id        String    @id @default(uuid()) 
+  name      String
+  code      String    @unique
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  provinces Province[]
+
+  @@map("countries")
+}
+
+model Province {
+  id        String    @id @default(uuid()) 
+  country   Country   @relation(fields: [countryId], references: [id], onDelete: Restrict)
+  countryId String    @map("country_id") 
+  name      String
+  code      String    @unique
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  cities City[]
+
+  @@unique([countryId, name])
+  @@map("provinces")
+}
+
+model City {
+  id         String    @id @default(uuid()) 
+  province   Province  @relation(fields: [provinceId], references: [id], onDelete: Restrict)
+  provinceId String    @map("province_id") 
+  name       String
+  code       String    @unique
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  events Event[]
+
+  @@unique([provinceId, name])
+  @@map("cities")
+}
+
+model Category {
+  id        String    @id @default(uuid()) 
+  name      String    @unique
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  events Event[]
+
+  @@map("categories")
+}
+
+model Event {
+  id          String      @id @default(uuid()) 
+  organizer   User        @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+  organizerId String      @map("organizer_id") 
+  category    Category    @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  categoryId  String      @map("category_id") 
+  city        City        @relation(fields: [cityId], references: [id], onDelete: Restrict)
+  cityId      String      @map("city_id") 
+  name        String
+  slug        String      @unique
+  description String
+  bannerUrl   String      @map("banner_url")
+  venue       String
+  address     String
+  startAt     DateTime    @map("start_at")
+  endAt       DateTime    @map("end_at")
+  status      EventStatus @default(DRAFT)
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+  deletedAt   DateTime?   @map("deleted_at")
+
+  ticketTypes  TicketType[]
+  vouchers     Voucher[]
+  transactions Transaction[]
+  ratings      Rating[]
+
+  @@map("events")
+}
+
+model TicketType {
+  id        String    @id @default(uuid()) 
+  event     Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId   String    @map("event_id") 
+  name      String
+  price     Int
+  quota     Int
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  transactionItems TransactionItem[]
+
+  @@unique([eventId, name])
+  @@map("ticket_types")
+}
+
+model Voucher {
+  id        String    @id @default(uuid()) 
+  event     Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId   String    @map("event_id") 
+  code      String    @unique
+  amount    Int
+  quota     Int
+  startAt   DateTime  @map("start_at")
+  endAt     DateTime  @map("end_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  transactions Transaction[]
+
+  @@map("vouchers")
+}
+
+model Transaction {
+  id                     String            @id @default(uuid()) 
+  user                   User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId                 String            @map("user_id") 
+  event                  Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId                String            @map("event_id") 
+  coupon                 Coupon?           @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  couponId               String?           @map("coupon_id") 
+  voucher                Voucher?          @relation(fields: [voucherId], references: [id], onDelete: SetNull)
+  voucherId              String?           @map("voucher_id") 
+  status                 TransactionStatus @default(WAITING_FOR_PAYMENT)
+  totalAmount            Int               @map("total_amount")
+  couponAmount           Int               @default(0) @map("coupon_amount")
+  voucherAmount          Int               @default(0) @map("voucher_amount")
+  pointsAmount           Int               @default(0) @map("points_amount")
+  finalAmount            Int               @map("final_amount")
+  paymentProofUrl        String?           @map("payment_proof_url")
+  paymentProofUploadedAt DateTime?         @map("payment_proof_uploaded_at")
+  expiredAt              DateTime?         @map("expired_at")
+  adminActionAt          DateTime?         @map("admin_action_at")
+  rejectedReason         String?           @map("rejected_reason")
+  createdAt              DateTime          @default(now()) @map("created_at")
+  updatedAt              DateTime          @updatedAt @map("updated_at")
+
+  pointHistories   PointHistory[]
+  transactionItems TransactionItem[]
+  tickets          Ticket[]
+
+  @@map("transactions")
+}
+
+model TransactionItem {
+  id            String      @id @default(uuid()) 
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  transactionId String      @map("transaction_id") 
+  ticketType    TicketType  @relation(fields: [ticketTypeId], references: [id], onDelete: Restrict)
+  ticketTypeId  String      @map("ticket_type_id") 
+  quantity      Int
+  price         Int
+  subtotal      Int
+  createdAt     DateTime    @default(now()) @map("created_at")
+
+  tickets Ticket[]
+
+  @@map("transaction_items")
+}
+
+model Ticket {
+  id                String           @id @default(uuid()) 
+  transactionItem   TransactionItem  @relation(fields: [transactionItemId], references: [id], onDelete: Cascade)
+  transactionItemId String           @map("transaction_item_id") 
+  transaction       Transaction      @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  transactionId     String           @map("transaction_id") 
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId            String           @map("user_id") 
+  code              String           @unique
+  checkedInAt       DateTime?        @map("checked_in_at")
+  createdAt         DateTime         @default(now()) @map("created_at")
+
+  @@map("tickets")
+}
+
+model Rating {
+  id        String    @id @default(uuid()) 
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String    @map("user_id") 
+  event     Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId   String    @map("event_id") 
+  rating    Int
+  review    String?
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@unique([userId, eventId])
+  @@map("ratings")
 }

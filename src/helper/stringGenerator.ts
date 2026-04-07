@@ -1,3 +1,5 @@
+import { randomInt } from "crypto";
+
 export const createExcerpt = (
   content: string,
   maxLength: number = 60,
@@ -23,3 +25,15 @@ export const createSlug = (str: string): string => {
 
   return baseSlug ? `${baseSlug}-${uniqueSuffix}` : `post-${uniqueSuffix}`;
 };
+
+export function generateReferralCode(name: string, length: number): string {
+  const REFERRAL_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ1234567890";
+  const prefix = name.slice(0, 2);
+
+  let code = "";
+  for (let i = 0; i < length; i++) {
+    code += REFERRAL_ALPHABET[randomInt(0, REFERRAL_ALPHABET.length)];
+  }
+
+  return prefix + code;
+}
