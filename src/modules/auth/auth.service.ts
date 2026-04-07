@@ -8,8 +8,10 @@ import {
   toUserPayload,
 } from "./auth.helper.js";
 import {
+  checkRefferalCode,
   createRefreshToken,
   findRefreshTokenByHashedToken,
+  findUserByReferralCode,
   revokeManyRefreshTokenByHashedToken,
   updateManyRefreshTokenByHashedToken,
 } from "./auth.repository.js";
@@ -20,30 +22,53 @@ import { AppError } from "../../class/appError.js";
 import { compileHandlebars } from "../../helper/handlebars.js";
 import { EMAIL_TEMPLATES_DIR } from "../../helper/path.js";
 import { sendMail } from "../../libs/mailer/nodemailer.libs.js";
+import { generateReferralCode } from "../../helper/stringGenerator.js";
 
 export const registerService = async (params: TRegisterParams) => {
-  const checkUser = await findUserByEmail(params.email);
-  if (checkUser) {
-    throw new AppError(409, "Email is already registered");
+  let referralCode = "";
+  let referralLength = 6;
+  let referrerUserId: string | undefined = "";
+
+  try {
+    const checkUser = await findUserByEmail(params.email);
+    if (checkUser) {
+      throw new AppError(409, "Email is already registered");
+    }
+
+    referralCode = generateReferralCode(referralLength);
+    let checkDuplicateRef = await checkRefferalCode(referralCode);
+    while (checkDuplicateRef) {
+      referralCode = generateReferralCode(referralLength);
+      checkDuplicateRef = await checkRefferalCode(referralCode);
+      referralLength++;
+    }
+
+    const { referrerCode, password, ...data } = params;
+    if (referrerCode) {
+      referrerUserId = (await findUserByReferralCode(referrerCode))?.id;
+    }
+
+    const passwordHash = await argon2d.hash(password);
+    const user = await createUser({
+      ...data,
+      passwordHash,
+      referralCode,
+      ...(referrerUserId && { referrerUserId }),
+    });
+
+    const welcomeMessage = "Welcome to MATCHPASS";
+    const html = await compileHandlebars(
+      EMAIL_TEMPLATES_DIR,
+      "register.mail.hbs",
+      {
+        name: `${user.firstName} ${user.lastName}`,
+      }
+    );
+
+    await sendMail(user.email, welcomeMessage, html);
+  } catch (error) {
+    throw error;
   }
-
-  const hashedPass = await argon2d.hash(params.password);
-  const createdUser = await createUser({
-    ...params,
-    password: hashedPass,
-  });
-
-  const welcomeMessage = "Welcome to MATCHPASS";
-  const user = toUserPayload(createdUser);
-  const html = await compileHandlebars(
-    EMAIL_TEMPLATES_DIR,
-    "register.mail.hbs",
-    {
-      name: `${user.firstName} ${user.lastName}`,
-    },
-  );
-
-  await sendMail(user.email, welcomeMessage, html);
 };
 
 export const loginService = async (params: TLoginParams) => {
@@ -52,7 +77,7 @@ export const loginService = async (params: TLoginParams) => {
     throw new AppError(401, "Invalid email or password");
   }
 
-  const isMatch = await argon2d.verify(user.password, params.password);
+  const isMatch = await argon2d.verify(user.passwordHash, params.password);
   if (!isMatch) {
     throw new AppError(401, "Invalid email or password");
   }
@@ -84,7 +109,7 @@ export const refreshTokenService = async (oldRefreshToken: string) => {
     return await prisma.$transaction(async (tx) => {
       const checkToken = await findRefreshTokenByHashedToken(
         oldHashedToken,
-        tx,
+        tx
       );
 
       if (
@@ -108,7 +133,7 @@ export const refreshTokenService = async (oldRefreshToken: string) => {
 
       const consume = await updateManyRefreshTokenByHashedToken(
         oldHashedToken,
-        tx,
+        tx
       );
 
       if (consume.count === 0)
@@ -138,8 +163,9 @@ export const logoutService = async (oldRefreshToken: string) => {
     const checkToken = await findRefreshTokenByHashedToken(oldHashedToken);
     if (!checkToken) return;
 
-    const revokeToken =
-      await revokeManyRefreshTokenByHashedToken(oldHashedToken);
+    const revokeToken = await revokeManyRefreshTokenByHashedToken(
+      oldHashedToken
+    );
     if (revokeToken.count === 0)
       throw new AppError(500, "Failed to delete refresh token during logout");
 
@@ -147,5 +173,12 @@ export const logoutService = async (oldRefreshToken: string) => {
   } catch (error) {
     console.error("Failed to delete refresh token during logout:", error);
     return;
+  }
+};
+
+export const verifyUserService = async (id: string) => {
+  try {
+  } catch (error) {
+    throw error;
   }
 };

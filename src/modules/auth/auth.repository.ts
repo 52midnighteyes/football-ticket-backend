@@ -4,7 +4,7 @@ import type { TPrisma } from "../../libs/prisma/prisma.types.js";
 
 export const findRefreshTokenByHashedToken = async (
   hashedToken: string,
-  db: TPrisma = prisma,
+  db: TPrisma = prisma
 ) => {
   return db.refreshToken.findFirst({
     where: {
@@ -21,7 +21,7 @@ export const findRefreshTokenByHashedToken = async (
 
 export const updateManyRefreshTokenByHashedToken = async (
   hashedToken: string,
-  db: TPrisma = prisma,
+  db: TPrisma = prisma
 ) => {
   return db.refreshToken.updateMany({
     where: {
@@ -33,7 +33,7 @@ export const updateManyRefreshTokenByHashedToken = async (
 
 export const revokeManyRefreshTokenByHashedToken = async (
   hashedToken: string,
-  db: TPrisma = prisma,
+  db: TPrisma = prisma
 ) => {
   return db.refreshToken.updateMany({
     where: {
@@ -45,9 +45,40 @@ export const revokeManyRefreshTokenByHashedToken = async (
 
 export const createRefreshToken = async (
   data: RefreshTokenUncheckedCreateInput,
-  db: TPrisma = prisma,
+  db: TPrisma = prisma
 ) => {
   return await db.refreshToken.create({
     data,
+  });
+};
+
+export const checkRefferalCode = async (
+  referralCode: string,
+  db: TPrisma = prisma
+) => {
+  return await db.user.findUnique({
+    where: {
+      referralCode,
+    },
+  });
+};
+
+export const findUserByReferralCode = async (
+  referralCode: string,
+  db: TPrisma = prisma
+) => {
+  return await db.user.findUnique({
+    where: { referralCode },
+  });
+};
+
+export const verifyUserById = async (id: string, db: TPrisma = prisma) => {
+  return await db.user.update({
+    where: {
+      id,
+    },
+    data: {
+      isVerified: true,
+    },
   });
 };

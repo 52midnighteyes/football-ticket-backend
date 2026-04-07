@@ -11,11 +11,11 @@ import {
 export const registerController = async (
   req: Request,
   res: Response,
-  next: NextFunction,
+  next: NextFunction
 ) => {
   try {
-    const payload = req.validated?.body as TRegisterParams;
-    await registerService(payload);
+    const payload = req.validated?.body;
+    await registerService(payload as TRegisterParams);
 
     res.status(201).json({ message: "Register success" });
   } catch (error) {
@@ -26,7 +26,7 @@ export const registerController = async (
 export const loginController = async (
   req: Request,
   res: Response,
-  next: NextFunction,
+  next: NextFunction
 ) => {
   try {
     const payload = req.validated?.body as TLoginParams;
@@ -43,7 +43,7 @@ export const loginController = async (
 export const refreshTokenController = async (
   req: Request,
   res: Response,
-  next: NextFunction,
+  next: NextFunction
 ) => {
   try {
     const oldRefreshToken = req.cookies.refreshToken;
@@ -70,7 +70,7 @@ export const refreshTokenController = async (
 export const logoutController = async (
   req: Request,
   res: Response,
-  next: NextFunction,
+  next: NextFunction
 ) => {
   try {
     const oldRefreshToken = req.cookies.refreshToken;

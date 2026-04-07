@@ -35,3 +35,6 @@ export const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
 export const REFRESH_TOKEN_SECRET = getRequiredEnv("REFRESH_TOKEN_SECRET");
 export const NODEMAILER_EMAIL = getRequiredEnv("NODEMAILER_EMAIL");
 export const NODEMAILER_PASS = getRequiredEnv("NODEMAILER_PASS");
+export const CLOUDINARY_CLOUD_NAME = getRequiredEnv("CLOUDINARY_CLOUD_NAME");
+export const CLOUDINARY_API_KEY = getRequiredEnv("CLOUDINARY_API_KEY");
+export const CLOUDINARY_API_SECRET = getRequiredEnv("CLOUDINARY_API_SECRET");

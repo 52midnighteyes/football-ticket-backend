@@ -1,4 +1,7 @@
-import type { UserCreateInput } from "../../../generated/prisma/models.js";
+import type {
+  UserCreateInput,
+  UserUncheckedCreateInput,
+} from "../../../generated/prisma/models.js";
 import { prisma } from "../../libs/prisma/prisma.lib.js";
 import type { TPrisma } from "../../libs/prisma/prisma.types.js";
 
@@ -17,7 +20,7 @@ export const findUserById = async (id: string, db: TPrisma = prisma) => {
 };
 
 export const createUser = async (
-  data: UserCreateInput,
+  data: UserUncheckedCreateInput,
   db: TPrisma = prisma
 ) => {
   return db.user.create({
