@@ -1,33 +1,50 @@
-import argon2d from "argon2";
+import argon2d, { argon2id } from "argon2";
 import type { IUserParams } from "../../custom.js";
 import type { TLoginParams, TRegisterParams } from "./auth.schemas.js";
+import Jwt from "jsonwebtoken";
 import {
-  generateAccessToken,
+  comparePassword,
+  createUserWithUniqueReferral,
+  generateJwtToken,
   generateRefreshToken,
+  handleReferral,
+  hashPasword,
   hashToken,
   toUserPayload,
 } from "./auth.helper.js";
 import {
-  checkRefferalCode,
   createRefreshToken,
   findRefreshTokenByHashedToken,
-  findUserByReferralCode,
   revokeManyRefreshTokenByHashedToken,
   updateManyRefreshTokenByHashedToken,
+  verifyUserById,
 } from "./auth.repository.js";
 import { FOURTEEN_DAYS_IN_MS } from "../../constant/time.constant.js";
 import { prisma } from "../../libs/prisma/prisma.lib.js";
-import { createUser, findUserByEmail } from "../user/user.repository.js";
+import {
+  createUser,
+  findUserByEmail,
+  findUserById,
+} from "../user/user.repository.js";
 import { AppError } from "../../class/appError.js";
 import { compileHandlebars } from "../../helper/handlebars.js";
 import { EMAIL_TEMPLATES_DIR } from "../../helper/path.js";
 import { sendMail } from "../../libs/mailer/nodemailer.libs.js";
-import { generateReferralCode } from "../../helper/stringGenerator.js";
+import {
+  FRONTEND_URL,
+  JWT_SECRET,
+  VERIFY_TOKEN_SECRET,
+} from "../../config/config.js";
+import {
+  jwtTokenSchema,
+  TJwtTokenPayload,
+} from "../../middlewares/tokenVerification/tokenVerification.schema.js";
 
 export const registerService = async (params: TRegisterParams) => {
-  let referralCode = "";
-  let referralLength = 6;
-  let referrerUserId: string | undefined = "";
+  let referrerUserId: string | null = null;
+  let emailSent = true;
+  const { referrerCode, password, ...data } = params;
+  const fullName = params.firstName + " " + params.lastName;
 
   try {
     const checkUser = await findUserByEmail(params.email);
@@ -35,37 +52,39 @@ export const registerService = async (params: TRegisterParams) => {
       throw new AppError(409, "Email is already registered");
     }
 
-    referralCode = generateReferralCode(referralLength);
-    let checkDuplicateRef = await checkRefferalCode(referralCode);
-    while (checkDuplicateRef) {
-      referralCode = generateReferralCode(referralLength);
-      checkDuplicateRef = await checkRefferalCode(referralCode);
-      referralLength++;
-    }
-
-    const { referrerCode, password, ...data } = params;
     if (referrerCode) {
-      referrerUserId = (await findUserByReferralCode(referrerCode))?.id;
+      referrerUserId = await handleReferral(referrerCode);
     }
 
-    const passwordHash = await argon2d.hash(password);
-    const user = await createUser({
+    const passwordHash = await hashPasword(password);
+    const userPayload = {
       ...data,
       passwordHash,
-      referralCode,
       ...(referrerUserId && { referrerUserId }),
-    });
+    };
+
+    const user = await createUserWithUniqueReferral(fullName, userPayload);
+    const payload = toUserPayload(user);
+    const verifyToken = generateJwtToken(payload, VERIFY_TOKEN_SECRET, "30d");
 
     const welcomeMessage = "Welcome to MATCHPASS";
     const html = await compileHandlebars(
       EMAIL_TEMPLATES_DIR,
       "register.mail.hbs",
       {
-        name: `${user.firstName} ${user.lastName}`,
-      }
+        name: fullName,
+        url: `${FRONTEND_URL}/verify/${verifyToken}`,
+      },
     );
 
-    await sendMail(user.email, welcomeMessage, html);
+    try {
+      await sendMail(user.email, welcomeMessage, html);
+    } catch (error) {
+      console.error("Failed to send verification email:", error);
+      emailSent = false;
+    }
+
+    return emailSent;
   } catch (error) {
     throw error;
   }
@@ -77,14 +96,14 @@ export const loginService = async (params: TLoginParams) => {
     throw new AppError(401, "Invalid email or password");
   }
 
-  const isMatch = await argon2d.verify(user.passwordHash, params.password);
+  const isMatch = await comparePassword(user.passwordHash, params.password);
   if (!isMatch) {
     throw new AppError(401, "Invalid email or password");
   }
 
   const payload: IUserParams = toUserPayload(user);
 
-  const accessToken = generateAccessToken(payload);
+  const accessToken = generateJwtToken(payload, JWT_SECRET, "15m");
 
   const { refreshToken, hashedToken } = generateRefreshToken();
   const refreshPayload = {
@@ -109,7 +128,7 @@ export const refreshTokenService = async (oldRefreshToken: string) => {
     return await prisma.$transaction(async (tx) => {
       const checkToken = await findRefreshTokenByHashedToken(
         oldHashedToken,
-        tx
+        tx,
       );
 
       if (
@@ -133,7 +152,7 @@ export const refreshTokenService = async (oldRefreshToken: string) => {
 
       const consume = await updateManyRefreshTokenByHashedToken(
         oldHashedToken,
-        tx
+        tx,
       );
 
       if (consume.count === 0)
@@ -147,7 +166,7 @@ export const refreshTokenService = async (oldRefreshToken: string) => {
       return {
         refreshToken,
         data: {
-          accessToken: generateAccessToken(payload),
+          accessToken: generateJwtToken(payload, JWT_SECRET, "15m"),
           user: payload,
         },
       };
@@ -163,9 +182,8 @@ export const logoutService = async (oldRefreshToken: string) => {
     const checkToken = await findRefreshTokenByHashedToken(oldHashedToken);
     if (!checkToken) return;
 
-    const revokeToken = await revokeManyRefreshTokenByHashedToken(
-      oldHashedToken
-    );
+    const revokeToken =
+      await revokeManyRefreshTokenByHashedToken(oldHashedToken);
     if (revokeToken.count === 0)
       throw new AppError(500, "Failed to delete refresh token during logout");
 
@@ -176,8 +194,16 @@ export const logoutService = async (oldRefreshToken: string) => {
   }
 };
 
-export const verifyUserService = async (id: string) => {
+export const verifyUserService = async (token: string) => {
   try {
+    const data: TJwtTokenPayload = jwtTokenSchema.parse(
+      Jwt.verify(token, VERIFY_TOKEN_SECRET),
+    );
+    const user = await findUserById(data.id);
+    if (!user) throw new AppError(404, "credentials not found");
+    if (user.isVerified) throw new AppError(409, "User is already verified");
+
+    await verifyUserById(data.id);
   } catch (error) {
     throw error;
   }

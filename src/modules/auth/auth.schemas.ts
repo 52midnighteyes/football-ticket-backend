@@ -15,7 +15,7 @@ export const registerUserSchema = z.object({
     .max(20, "Password must not exceed 20 characters")
     .regex(
       /^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/,
-      "Password must be at least 8 characters long and include at least 1 uppercase letter, 1 number, and 1 special character"
+      "Password must be at least 8 characters long and include at least 1 uppercase letter, 1 number, and 1 special character",
     ),
   role: z
     .enum([UserRole.CUSTOMER, UserRole.ORGANIZER], {
@@ -31,6 +31,10 @@ export const loginSchema = z.object({
     .nonempty("Email is required")
     .trim(),
   password: z.string().nonempty("Password is required"),
+});
+
+export const verifyParamsSchema = z.object({
+  token: z.string().nonempty("Verification token is required"),
 });
 
 export type TLoginParams = z.infer<typeof loginSchema>;

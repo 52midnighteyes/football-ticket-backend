@@ -1,7 +1,7 @@
 import * as z from "zod";
 import { UserRole } from "../../../generated/prisma/enums.js";
 
-export const accessTokenSchema = z.object({
+export const jwtTokenSchema = z.object({
   id: z.uuid({ error: "User ID from token is invalid" }),
   email: z.email({ error: "Email from token is invalid" }),
   firstName: z.string().nonempty("First name is required").trim(),
@@ -11,4 +11,4 @@ export const accessTokenSchema = z.object({
   }),
 });
 
-export type AccessTokenPayload = z.infer<typeof accessTokenSchema>;
+export type TJwtTokenPayload = z.infer<typeof jwtTokenSchema>;

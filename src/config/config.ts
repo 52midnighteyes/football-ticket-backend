@@ -38,3 +38,6 @@ export const NODEMAILER_PASS = getRequiredEnv("NODEMAILER_PASS");
 export const CLOUDINARY_CLOUD_NAME = getRequiredEnv("CLOUDINARY_CLOUD_NAME");
 export const CLOUDINARY_API_KEY = getRequiredEnv("CLOUDINARY_API_KEY");
 export const CLOUDINARY_API_SECRET = getRequiredEnv("CLOUDINARY_API_SECRET");
+export const VERIFY_TOKEN_SECRET = getRequiredEnv("VERIFY_TOKEN_SECRET");
+export const RESET_TOKEN_SECRET = getRequiredEnv("RESET_TOKEN_SECRET");
+export const PEPPER = getRequiredEnv("PEPPER");
