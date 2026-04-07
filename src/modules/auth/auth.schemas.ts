@@ -17,10 +17,10 @@ export const registerUserSchema = z.object({
       "Password must be at least 8 characters long and include at least 1 uppercase letter, 1 number, and 1 special character",
     ),
   role: z
-    .enum([UserRole.USER, UserRole.ORGANIZER], {
+    .enum([UserRole.CUSTOMER, UserRole.ORGANIZER], {
       message: "Role must be USER or ORGANIZER",
     })
-    .default(UserRole.USER),
+    .default(UserRole.CUSTOMER),
 });
 
 export const loginSchema = z.object({
