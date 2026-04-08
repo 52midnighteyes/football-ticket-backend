@@ -1,17 +1,25 @@
 import { Router } from "express";
 import { validateSchema } from "../../middlewares/zodValidator.middleware.js";
 import {
+  emailSchema,
+  forgotPasswordSchema,
   loginSchema,
   registerUserSchema,
+  tokenParamsSchema,
+  updatePasswordSchema,
   verifyParamsSchema,
 } from "./auth.schemas.js";
 import {
+  forgotPasswordController,
+  forgotPasswordRequestController,
   loginController,
   logoutController,
   refreshTokenController,
   registerController,
+  updatePasswordController,
   verifyUserController,
 } from "./auth.controller.js";
+import { verifyAccessToken } from "../../middlewares/tokenVerification/tokenVerification.middleware.js";
 
 const router = Router();
 
@@ -31,6 +39,26 @@ router.post(
   "/verify/:token",
   validateSchema(verifyParamsSchema, "params"),
   verifyUserController,
+);
+
+router.post(
+  "/update-password",
+  verifyAccessToken,
+  validateSchema(updatePasswordSchema, "body"),
+  updatePasswordController,
+);
+
+router.post(
+  "/request-forgot-password",
+  validateSchema(emailSchema, "body"),
+  forgotPasswordRequestController,
+);
+
+router.post(
+  "/forgot-password/:token",
+  validateSchema(forgotPasswordSchema, "body"),
+  validateSchema(tokenParamsSchema, "params"),
+  forgotPasswordController,
 );
 
 export default router;

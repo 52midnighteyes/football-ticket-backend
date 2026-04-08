@@ -28,7 +28,7 @@ export const createSlug = (str: string): string => {
 
 export function generateReferralCode(name: string, length: number): string {
   const REFERRAL_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ1234567890";
-  const prefix = name.slice(0, 2);
+  const prefix = name.slice(0, 2).toUpperCase();
 
   let code = "";
   for (let i = 0; i < length; i++) {

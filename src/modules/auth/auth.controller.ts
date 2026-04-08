@@ -1,11 +1,21 @@
 import type { Request, Response, NextFunction } from "express";
-import type { TLoginParams, TRegisterParams } from "./auth.schemas.js";
+import type {
+  TEmailParams,
+  TForgotPasswordParams,
+  TLoginParams,
+  TRegisterParams,
+  TTokenParams,
+  TUpdatePassword,
+} from "./auth.schemas.js";
 import { refreshTokenConfig } from "../../constant/cookie-options.constant.js";
 import {
+  forgotPasswordRequestService,
+  forgotPasswordService,
   loginService,
   logoutService,
   refreshTokenService,
   registerService,
+  updatePasswordService,
   verifyUserService,
 } from "./auth.service.js";
 
@@ -98,9 +108,63 @@ export const verifyUserController = async (
   next: NextFunction,
 ) => {
   try {
-    const { token } = req.validated?.params as { token: string };
+    const { token } = req.validated?.params as TTokenParams;
     await verifyUserService(token);
     res.status(201).json({ message: "Verify success" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updatePasswordController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const data = req.validated?.body as TUpdatePassword;
+    const userId = req.user!.id;
+
+    await updatePasswordService({ ...data, userId });
+
+    res.status(201).json({ message: "update password successfull" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const forgotPasswordRequestController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { email } = req.validated?.body as TEmailParams;
+    await forgotPasswordRequestService(email);
+
+    res.status(200).json({
+      message:
+        "If an account with that email exists, a reset link has been sent",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const forgotPasswordController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { token } = req.validated?.params as TTokenParams;
+    const { newPassword } = req.validated?.body as TForgotPasswordParams;
+    await forgotPasswordService(token, newPassword);
+
+    res.status(200).json({
+      message:
+        "Password reset successful. You can now log in with your new password",
+    });
   } catch (error) {
     next(error);
   }
