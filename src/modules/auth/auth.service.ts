@@ -1,30 +1,41 @@
-import argon2d, { argon2id } from "argon2";
 import type { IUserParams } from "../../custom.js";
-import type { TLoginParams, TRegisterParams } from "./auth.schemas.js";
-import Jwt from "jsonwebtoken";
+import type {
+  TUpdatePassword,
+  TLoginParams,
+  TRegisterParams,
+} from "./auth.schemas.js";
 import {
   comparePassword,
   createUserWithUniqueReferral,
   generateJwtToken,
   generateRefreshToken,
+  generateResetToken,
   handleReferral,
-  hashPasword,
+  hashPassword,
   hashToken,
   toUserPayload,
+  verifyJwtToken,
 } from "./auth.helper.js";
 import {
   createRefreshToken,
+  createResetToken,
   findRefreshTokenByHashedToken,
+  findResetToken,
   revokeManyRefreshTokenByHashedToken,
   updateManyRefreshTokenByHashedToken,
-  verifyUserById,
+  updateManyUsedResetToken,
 } from "./auth.repository.js";
-import { FOURTEEN_DAYS_IN_MS } from "../../constant/time.constant.js";
+import {
+  FOURTEEN_DAYS_IN_MS,
+  ONE_MINUTE_IN_MS,
+  THIRTY_DAYS_IN_MS,
+} from "../../constant/time.constant.js";
 import { prisma } from "../../libs/prisma/prisma.lib.js";
 import {
-  createUser,
   findUserByEmail,
   findUserById,
+  updateManyUserPassword,
+  verifyManyUserById,
 } from "../user/user.repository.js";
 import { AppError } from "../../class/appError.js";
 import { compileHandlebars } from "../../helper/handlebars.js";
@@ -33,12 +44,18 @@ import { sendMail } from "../../libs/mailer/nodemailer.libs.js";
 import {
   FRONTEND_URL,
   JWT_SECRET,
+  RESET_TOKEN_SECRET,
   VERIFY_TOKEN_SECRET,
 } from "../../config/config.js";
+import { TJwtTokenPayload } from "../../middlewares/tokenVerification/tokenVerification.schema.js";
+import { createPoint, createPointHistory } from "../point/point.repository.js";
 import {
-  jwtTokenSchema,
-  TJwtTokenPayload,
-} from "../../middlewares/tokenVerification/tokenVerification.schema.js";
+  CouponUncheckedCreateInput,
+  PasswordResetTokenUncheckedCreateInput,
+  PointHistoryUncheckedCreateInput,
+  PointUncheckedCreateInput,
+} from "../../../generated/prisma/models.js";
+import { createCoupon } from "../coupon/coupon.repository.js";
 
 export const registerService = async (params: TRegisterParams) => {
   let referrerUserId: string | null = null;
@@ -56,7 +73,7 @@ export const registerService = async (params: TRegisterParams) => {
       referrerUserId = await handleReferral(referrerCode);
     }
 
-    const passwordHash = await hashPasword(password);
+    const passwordHash = await hashPassword(password);
     const userPayload = {
       ...data,
       passwordHash,
@@ -180,30 +197,166 @@ export const logoutService = async (oldRefreshToken: string) => {
   try {
     const oldHashedToken = hashToken(oldRefreshToken);
     const checkToken = await findRefreshTokenByHashedToken(oldHashedToken);
-    if (!checkToken) return;
+    if (!checkToken) throw new AppError(404, "Refresh token not found");
 
     const revokeToken =
       await revokeManyRefreshTokenByHashedToken(oldHashedToken);
     if (revokeToken.count === 0)
-      throw new AppError(500, "Failed to delete refresh token during logout");
-
-    return;
+      throw new AppError(
+        500,
+        "race condition detected, failed to revoke refresh token",
+      );
   } catch (error) {
     console.error("Failed to delete refresh token during logout:", error);
-    return;
+    throw error;
   }
 };
 
 export const verifyUserService = async (token: string) => {
   try {
-    const data: TJwtTokenPayload = jwtTokenSchema.parse(
-      Jwt.verify(token, VERIFY_TOKEN_SECRET),
-    );
+    const data: TJwtTokenPayload = verifyJwtToken(token);
     const user = await findUserById(data.id);
     if (!user) throw new AppError(404, "credentials not found");
     if (user.isVerified) throw new AppError(409, "User is already verified");
 
-    await verifyUserById(data.id);
+    await prisma.$transaction(async (tx) => {
+      const verified = await verifyManyUserById(data.id, tx);
+      if (verified.count === 0)
+        throw new AppError(409, "User is already verified");
+
+      if (user.referrerUserId) {
+        const referrerPointPayload: PointUncheckedCreateInput = {
+          userId: user.referrerUserId,
+          pointEarned: 10000,
+          pointLeft: 10000,
+        };
+
+        const point = await createPoint(referrerPointPayload, tx);
+
+        const pointHistoryPayload: PointHistoryUncheckedCreateInput = {
+          pointId: point.id,
+          userId: point.userId,
+          amount: 10000,
+          type: "EARNED",
+          source: "REFERRAL_REWARD",
+          expiresAt: new Date(Date.now() + THIRTY_DAYS_IN_MS),
+        };
+
+        await createPointHistory(pointHistoryPayload, tx);
+
+        const couponPayload: CouponUncheckedCreateInput = {
+          userId: user.id,
+          source: "REFERRAL_REGISTER",
+          amount: 10000,
+          expiresAt: new Date(Date.now() + THIRTY_DAYS_IN_MS),
+        };
+
+        await createCoupon(couponPayload, tx);
+      }
+    });
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const updatePasswordService = async (
+  params: TUpdatePassword & { userId: string },
+) => {
+  try {
+    const user = await findUserById(params.userId);
+    if (!user) throw new AppError(404, "User resource not found");
+
+    const compareOldPassword = await comparePassword(
+      user.passwordHash,
+      params.oldPassword,
+    );
+    if (!compareOldPassword) throw new AppError(422, "Validation failed");
+
+    const newPasswordHash = await hashPassword(params.newPassword);
+    const updatePasswordPayload = {
+      id: user.id,
+      passwordHash: newPasswordHash,
+    };
+
+    const updatePassword = await updateManyUserPassword(updatePasswordPayload);
+    if (updatePassword.count === 0)
+      throw new AppError(409, "Resource already exists");
+  } catch (error) {
+    throw error;
+  }
+};
+
+/*
+forgot password
+
+verify jwt
+jwt isinya IUserParams
+ambil idnya
+rewrite
+
+
+*/
+
+export const forgotPasswordRequestService = async (email: string) => {
+  try {
+    const user = await findUserByEmail(email);
+    if (user) {
+      const token = generateResetToken();
+      const tokenHash = hashToken(token);
+      const resetTokenPayload: PasswordResetTokenUncheckedCreateInput = {
+        userId: user.id,
+        tokenHash: tokenHash,
+        expiresAt: new Date(Date.now() + ONE_MINUTE_IN_MS * 15),
+      };
+
+      await createResetToken(resetTokenPayload);
+
+      const titleMessage = "We Received Your Reset Request";
+      const html = await compileHandlebars(
+        EMAIL_TEMPLATES_DIR,
+        "request-forgot-password.mail.hbs",
+        {
+          name: `${user.firstName} ${user.lastName}`,
+          url: `${FRONTEND_URL}/forgot-password/${token}`,
+        },
+      );
+
+      await sendMail(user.email, titleMessage, html);
+    }
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const forgotPasswordService = async (
+  token: string,
+  newPassword: string,
+) => {
+  try {
+    const tokenHash = hashToken(token);
+    const found = await findResetToken(tokenHash);
+    if (!found) throw new AppError(400, "Invalid or expired token");
+
+    const newPasswordHash = await hashPassword(newPassword);
+    await prisma.$transaction(async (tx) => {
+      const updatePassword = await updateManyUserPassword(
+        {
+          id: found.userId,
+          passwordHash: newPasswordHash,
+        },
+        tx,
+      );
+
+      if (updatePassword.count === 0)
+        throw new AppError(404, "User resource not found");
+
+      const revokeToken = await updateManyUsedResetToken(found.userId, tx);
+      if (revokeToken.count === 0)
+        throw new AppError(
+          404,
+          "race condition detected, failed to revoke reset token",
+        );
+    });
   } catch (error) {
     throw error;
   }

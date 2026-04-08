@@ -1,13 +1,18 @@
 import argon2 from "argon2";
 import type { User } from "../../../generated/prisma/browser.js";
-import { PEPPER, REFRESH_TOKEN_SECRET } from "../../config/config.js";
+import {
+  PEPPER,
+  REFRESH_TOKEN_SECRET,
+  VERIFY_TOKEN_SECRET,
+} from "../../config/config.js";
 import type { IUserParams } from "../../custom.js";
 import Jwt from "jsonwebtoken";
 import { createHmac, randomBytes } from "node:crypto";
-import { findUserByReferralCode } from "./auth.repository.js";
+import { findUserByReferralCode } from "../user/user.repository.js";
 import { generateReferralCode } from "../../helper/stringGenerator.js";
 import { createUser } from "../user/user.repository.js";
 import { TRegisterUserPayload } from "./auth.types.js";
+import { jwtTokenSchema } from "../../middlewares/tokenVerification/tokenVerification.schema.js";
 
 export const generateJwtToken = (
   params: IUserParams,
@@ -42,7 +47,7 @@ export const toUserPayload = (params: User): IUserParams => {
   };
 };
 
-export const hashPasword = async (password: string) => {
+export const hashPassword = async (password: string) => {
   return await argon2.hash(password, {
     type: argon2.argon2id,
     secret: Buffer.from(PEPPER),
@@ -90,4 +95,12 @@ export const createUserWithUniqueReferral = async (
   } catch (error) {
     throw error;
   }
+};
+
+export const verifyJwtToken = (jwt: string) => {
+  return jwtTokenSchema.parse(Jwt.verify(jwt, VERIFY_TOKEN_SECRET));
+};
+
+export const generateResetToken = () => {
+  return randomBytes(32).toString("base64url");
 };

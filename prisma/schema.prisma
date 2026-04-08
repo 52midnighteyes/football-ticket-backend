@@ -72,6 +72,7 @@ model User {
   transactions        Transaction[]
   tickets             Ticket[]
   ratings             Rating[]
+  point               Point[]
   @@map("users")
 }
 
@@ -100,8 +101,26 @@ model PasswordResetToken {
   @@map("password_reset_tokens")
 }
 
+
+model Point {
+  id          String @id @default(uuid())
+  pointEarned Int @map("point_earned")
+  pointUsed   Int @default(0) @map("point_used")
+  pointLeft   Int @default(0) @map("point_left")
+  user        User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String @map("user_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  pointHistories PointHistory[]
+
+  @@map("points")
+}
+
 model PointHistory {
   id            String             @id @default(uuid()) 
+  point         Point              @relation(fields: [pointId], references: [id], onDelete: Cascade)
+  pointId       String             @map("point_id")
   user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId        String             @map("user_id") 
   transaction   Transaction?       @relation(fields: [transactionId], references: [id], onDelete: SetNull)
