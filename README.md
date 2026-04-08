@@ -1,116 +1,148 @@
-# Simple Auth Boilerplate
+# Football Ticket Backend
 
-Boilerplate backend sederhana berbasis TypeScript, Express, Prisma, PostgreSQL, Zod, JWT access token, dan refresh token berbasis cookie.
+Backend API sederhana untuk sistem ticketing sepak bola berbasis TypeScript, Express, Prisma, dan PostgreSQL.
 
-Project ini sudah memakai pola module assembly, jadi route tidak didaftarkan satu per satu di `server.ts`. Setiap module merakit dependency-nya sendiri lalu dikumpulkan di satu tempat.
-
-## Status Project
-
-Project ini masih raw dan masih akan terus gue refactor. Struktur yang ada sekarang sudah bisa dipakai buat development, tapi masih bakal gue rapihin lagi seiring progress fitur dan kebutuhan arsitektur.
+Saat ini backend yang benar-benar expose ke client masih berpusat di sistem auth, tetapi schema database, reward referral, point, coupon, email template, upload helper, dan middleware umum sudah ikut disiapkan di project ini.
 
 ## Stack
 
 - TypeScript
-- Express
+- Express 5
 - Prisma
 - PostgreSQL
+- Neon Prisma Adapter
 - Zod
 - JWT
-- Cookie-based refresh token
+- Argon2
+- Nodemailer
+- Cloudinary
+- Multer
 
-## Fitur Saat Ini
+## Systems Implemented
+
+### 1. Authentication System
+
+System auth yang sudah aktif di backend:
 
 - register user
 - login user
-- access token berbasis JWT
-- refresh token berbasis cookie `httpOnly`
-- refresh token rotation
+- refresh access token dengan refresh token cookie
 - logout
-- input validation dengan Zod
-- centralized error handling
-- middleware verifikasi bearer token untuk route protected
-- module-based folder structure
+- verify email/account
+- update password saat user sudah login
+- request forgot password
+- reset password via token
 
-## Endpoint
+Flow yang sudah diimplementasikan:
 
-### Public
+- password di-hash pakai Argon2 + pepper
+- access token dikirim sebagai JWT bearer token
+- refresh token disimpan di cookie `httpOnly`
+- refresh token di-hash sebelum disimpan ke database
+- reset password token dikirim lewat email
+- verify account token dikirim lewat email
+
+### 2. Referral Reward System
+
+Referral system yang sudah ada:
+
+- user baru bisa register dengan `referrerCode`
+- backend menyimpan `referrerUserId` pada user yang direferensikan
+- saat user berhasil verify account, referrer akan mendapatkan point reward
+- user yang mendaftar via referral juga akan mendapatkan coupon reward
+
+### 3. Point System
+
+Point system yang sudah tersedia di level schema dan repository:
+
+- tabel `points`
+- tabel `point_histories`
+- pencatatan point earned
+- source point untuk referral reward
+- expiry point untuk reward referral
+
+Saat ini point belum punya endpoint public sendiri, tetapi logic reward-nya sudah dipakai di flow verifikasi user.
+
+### 4. Coupon System
+
+Coupon system yang sudah tersedia di level schema dan repository:
+
+- tabel `coupons`
+- source coupon `REFERRAL_REGISTER`
+- expiry coupon untuk reward referral
+
+Saat ini coupon belum punya endpoint public sendiri, tetapi logic pembuatannya sudah dipakai di flow verifikasi user referral.
+
+### 5. Email Notification System
+
+Sistem email yang sudah ada:
+
+- email welcome + verification
+- email request forgot password
+- template email berbasis Handlebars
+- pengiriman email via Nodemailer Gmail transport
+
+### 6. Validation and Error Handling
+
+System guard yang sudah aktif:
+
+- request validation dengan Zod
+- centralized error handler
+- custom `AppError`
+- bearer token verification middleware
+- JSON parse error handling
+- Prisma error mapping
+- Multer error mapping
+
+### 7. File Upload Utility
+
+Utility yang sudah disiapkan:
+
+- multer memory storage
+- filter mime type image
+- upload helper ke Cloudinary
+- delete helper dari Cloudinary
+
+Saat ini utility upload sudah ada di project, tetapi belum dipasang ke endpoint public.
+
+## Public API Endpoints
+
+Semua endpoint public yang aktif sekarang ada di prefix `/api/auth`.
+
+### General
 
 - `GET /`
-  Mengecek apakah API berjalan.
+  Health check sederhana untuk memastikan API hidup.
+
+### Auth
 
 - `POST /api/auth/register`
   Register user baru.
 
 - `POST /api/auth/login`
-  Login user, return access token, dan set cookie refresh token.
+  Login user dan return access token + set refresh token cookie.
 
 - `POST /api/auth/refresh-token`
-  Membuat access token baru dari refresh token cookie.
+  Generate access token baru dari refresh token cookie.
 
 - `POST /api/auth/logout`
-  Menghapus refresh token dari server lalu clear cookie.
+  Revoke refresh token aktif dan clear cookie.
 
-## Auth Flow
+- `POST /api/auth/verify/:token`
+  Verifikasi account user menggunakan token dari email.
 
-### 1. Register
+- `POST /api/auth/update-password`
+  Update password user login menggunakan bearer access token.
 
-Client mengirim data register ke `POST /api/auth/register`.
+- `POST /api/auth/request-forgot-password`
+  Mengirim email reset password jika account ditemukan.
 
-Server akan:
-
-- cek apakah email sudah terdaftar
-- hash password dengan `argon2`
-- simpan user ke database
-- return access token dan user payload
-
-### 2. Login
-
-Client mengirim email dan password ke `POST /api/auth/login`.
-
-Server akan:
-
-- validasi email dan password
-- generate access token
-- generate refresh token acak
-- hash refresh token sebelum disimpan ke database
-- simpan versi hash ke tabel `RefreshToken`
-- set cookie `refreshToken`
-- return access token dan user payload
-
-### 3. Refresh Token
-
-Client memanggil `POST /api/auth/refresh-token` dengan cookie refresh token yang masih ada.
-
-Server akan:
-
-- ambil refresh token dari cookie
-- hash token tersebut
-- cari token di database
-- jika valid, generate access token baru
-- rotate refresh token lama dengan refresh token baru
-- set cookie refresh token yang baru
-- return access token baru dan user payload
-
-Jika cookie tidak ada atau token tidak valid:
-
-- cookie akan di-clear
-- response akan return `401`
-
-### 4. Logout
-
-Client memanggil `POST /api/auth/logout`.
-
-Server akan:
-
-- ambil refresh token dari cookie
-- hash token tersebut
-- hapus token dari database jika ada
-- clear cookie refresh token
-- return response sukses
+- `POST /api/auth/forgot-password/:token`
+  Reset password menggunakan token dari email forgot password.
 
 ## Cookie Refresh Token
 
-Refresh token disimpan di cookie dengan konfigurasi:
+Refresh token saat ini memakai cookie dengan konfigurasi:
 
 - `httpOnly: true`
 - `secure: NODE_ENV === "production"`
@@ -118,7 +150,7 @@ Refresh token disimpan di cookie dengan konfigurasi:
 - `path: "/api/auth"`
 - `maxAge: 14 hari`
 
-Karena refresh token memakai cookie, frontend perlu mengirim request dengan credentials.
+Frontend harus mengirim request dengan `credentials: "include"` saat akses endpoint refresh token atau logout.
 
 Contoh:
 
@@ -129,219 +161,108 @@ fetch("http://localhost:8080/api/auth/refresh-token", {
 });
 ```
 
-## Role User
+## Auth Payload Rules
 
-Public register hanya menerima role:
+Rule utama yang sekarang dipakai:
 
-- `USER`
-- `ORGANIZER`
+- role register public hanya `CUSTOMER` atau `ORGANIZER`
+- password minimum 8 karakter
+- password wajib punya 1 uppercase
+- password wajib punya 1 angka
+- password wajib punya 1 special character
+- password maksimum 20 karakter
 
-Role `ADMIN` tetap ada di schema, tapi tidak bisa dibuat dari endpoint register publik.
+## Database Models Already Used
 
-## Struktur Folder
+Model yang sudah benar-benar kepakai di implementation sekarang:
 
-```txt
-src/
-  app.ts
-  server.ts
-  config/
-  class/
-  constant/
-  helper/
-  libs/
-  middlewares/
-    tokenVerification/
-  modules/
-    index.ts
-    auth/
-    user/
-  types/
-```
+- `User`
+- `RefreshToken`
+- `PasswordResetToken`
+- `Point`
+- `PointHistory`
+- `Coupon`
 
-## Instalasi
+Schema event, transaction, voucher, rating, ticket, dan location juga sudah ada di Prisma, tetapi belum expose route public di app saat ini.
 
-### 1. Install dependency
+## Environment Variables
 
-```bash
-npm install
-```
-
-### 2. Siapkan environment variables
-
-Buat file `.env` lalu isi:
+Project ini butuh env berikut:
 
 ```env
 DATABASE_URL=
 PORT=8080
 JWT_SECRET=
 REFRESH_TOKEN_SECRET=
-NODE_ENV=development
+VERIFY_TOKEN_SECRET=
+RESET_TOKEN_SECRET=
+PEPPER=
+NODEMAILER_EMAIL=
+NODEMAILER_PASS=
 FRONTEND_URL=http://localhost:3000
+NODE_ENV=development
+CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
 ```
-
-Keterangan singkat:
-
-- `DATABASE_URL`: koneksi PostgreSQL
-- `JWT_SECRET`: secret untuk access token
-- `REFRESH_TOKEN_SECRET`: secret untuk hash refresh token
-- `FRONTEND_URL`: origin frontend untuk CORS
-
-### 3. Jalankan migration
-
-```bash
-npm run prisma:migrate
-```
-
-### 4. Generate Prisma client
-
-```bash
-npm run prisma:generate
-```
-
-### 5. Jalankan server
-
-```bash
-npm run dev
-```
-
-Server akan berjalan di port sesuai `PORT`.
 
 ## Scripts
 
 - `npm run dev` menjalankan server development dengan `tsx watch`
 - `npm run build` compile TypeScript ke folder `dist`
-- `npm run check` type-check tanpa output build
+- `npm run check` menjalankan type-check tanpa output build
 - `npm run prisma:generate` generate Prisma client
 - `npm run prisma:migrate` menjalankan migration development
 - `npm run prisma:studio` membuka Prisma Studio
 
-## Schema Inti
-
-### User
-
-Menyimpan data user utama:
-
-- `id`
-- `firstName`
-- `lastName`
-- `email`
-- `password`
-- `role`
-
-### RefreshToken
-
-Menyimpan refresh token yang sudah di-hash:
-
-- `id`
-- `hashedToken`
-- `userId`
-- `expiresAt`
-- `createdAt`
-
-## Route Protected
-
-Boilerplate ini sudah punya middleware bearer token di:
-
-- `src/middlewares/tokenVerification/tokenVerification.middleware.ts`
-
-Middleware ini membaca header:
+## Current Structure
 
 ```txt
-Authorization: Bearer <access_token>
+src/
+  app.ts
+  server.ts
+  class/
+  config/
+  constant/
+  helper/
+  libs/
+  middlewares/
+    tokenVerification/
+  modules/
+    auth/
+    coupon/
+    point/
+    user/
+  templates/
+    emails/
+prisma/
+  schema.prisma
+  migrations/
 ```
 
-Lalu hasil verifikasi akan disimpan ke:
+## Implementation Log
 
-```ts
-req.user
-```
+### 2026-04-09 00:46:33 +07:00
 
-Contoh pemakaian di route:
+System yang sudah implemented sampai timestamp ini:
 
-```ts
-router.get("/me", verifyToken.accessToken, controller.me);
-```
+- auth register, login, refresh token, logout, verify account, forgot password, dan update password
+- JWT access token + cookie-based refresh token flow
+- hashing password dengan Argon2 + pepper
+- hashing refresh token dan reset password token sebelum simpan ke database
+- referral tracking via `referrerCode`
+- reward referral berupa point untuk referrer
+- reward referral berupa coupon untuk referred user setelah verify
+- penambahan model `Point`, `PointHistory`, dan `Coupon`
+- repository internal untuk point dan coupon
+- email template Handlebars untuk verification dan forgot password
+- utility upload image ke Cloudinary
+- request validation dengan Zod
+- centralized error handling
+- Prisma schema untuk auth, reward, event, transaction, dan ticketing core entities
 
-## Pola Module
+## Notes
 
-Setiap module bertanggung jawab merakit dependency-nya sendiri.
-
-Contoh di auth module:
-
-1. buat repository
-2. inject ke service
-3. inject service ke controller
-4. inject controller ke router
-5. return `{ path, router }`
-
-Assembler semua module ada di:
-
-- `src/modules/index.ts`
-
-`server.ts` hanya memanggil:
-
-```ts
-const app = createApp(createModules());
-startApp(app);
-```
-
-## Cara Menambah Module Baru
-
-Misalnya ingin menambah module `profile`.
-
-### 1. Buat folder module
-
-Contoh struktur:
-
-```txt
-src/modules/profile/
-  profile.controller.ts
-  profile.service.ts
-  profile.repository.ts
-  profile.route.ts
-  profile.module.ts
-```
-
-### 2. Rakit dependency di module
-
-Contoh `profile.module.ts`:
-
-```ts
-import { createProfileController } from "./profile.controller.js";
-import { createProfileRoute } from "./profile.route.js";
-import { createProfileService } from "./profile.service.js";
-import { createProfileRepository } from "./profile.repository.js";
-
-export const createProfileModule = () => {
-  const profileRepository = createProfileRepository();
-  const profileService = createProfileService(profileRepository);
-  const profileController = createProfileController(profileService);
-
-  return {
-    path: "/api/profile",
-    router: createProfileRoute(profileController),
-  };
-};
-```
-
-### 3. Daftarkan ke assembler module
-
-Edit `src/modules/index.ts`:
-
-```ts
-import { createAuthModule } from "./auth/auth.module.js";
-import { createProfileModule } from "./profile/profile.module.js";
-import type { AppModule } from "../types/module.type.js";
-
-export const createModules = (): AppModule[] => {
-  return [createAuthModule(), createProfileModule()];
-};
-```
-
-Setelah itu app akan otomatis me-loop semua module dan register route-nya.
-
-## Catatan
-
-- `build` tidak otomatis menjalankan `prisma generate`, jadi setelah schema berubah tetap jalankan `npm run prisma:generate`.
-- Refresh token disimpan dalam bentuk hash, bukan plain token.
-- Saat frontend memakai cookie refresh token, pastikan request mengirim credentials.
+- App yang aktif saat ini baru mendaftarkan `AuthRouter` di [src/app.ts](src/app.ts).
+- Endpoint untuk event, transaction, coupon, dan point belum dipublish ke app walaupun schema dan sebagian repository-nya sudah ada.
+- Setelah schema Prisma berubah, jalankan `npm run prisma:generate` bila client belum ikut ter-update.

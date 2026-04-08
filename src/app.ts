@@ -8,7 +8,6 @@ import { AppError } from "./class/appError.js";
 import { errorHandler } from "./middlewares/errorHandler.middleware.js";
 
 import AuthRouter from "./modules/auth/auth.route.js";
-import { transporter } from "./libs/mailer/nodemailer.libs.js";
 
 const app = express();
 

@@ -17,7 +17,7 @@ const BASE_PARENT_FOLDER = "FOOTBALL_APP";
 
 export const uploadToCloudinary = (
   file: Express.Multer.File,
-  id: string
+  id: string,
 ): Promise<UploadApiResponse> => {
   return new Promise((resolve, reject) => {
     const folder = `${BASE_PARENT_FOLDER}/${id}/images`;
@@ -27,12 +27,12 @@ export const uploadToCloudinary = (
       (error, result) => {
         if (error || !result) {
           return reject(
-            new AppError(500, "Failed to upload image to Cloudinary", false)
+            new AppError(500, "Failed to upload image to Cloudinary", false),
           );
         }
 
         resolve(result);
-      }
+      },
     );
 
     Readable.from([file.buffer]).pipe(stream);
@@ -48,6 +48,6 @@ export const deleteFromCloudinary = async (publicId: string) => {
 
   console.log(
     "Image deleted successfully from Cloudinary",
-    action.original_filename
+    action.original_filename,
   );
 };
