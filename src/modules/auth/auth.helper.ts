@@ -44,6 +44,7 @@ export const toUserPayload = (params: User): IUserParams => {
     firstName: params.firstName,
     lastName: params.lastName,
     role: params.role,
+    avatarUrl: params.avatarUrl || undefined,
   };
 };
 
