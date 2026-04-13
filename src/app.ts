@@ -24,6 +24,18 @@ app.use(
 app.use(helmet());
 app.use(express.json());
 
+app.use("/", (req: Request, res: Response, next: NextFunction) => {
+  console.log("=== Incoming Request ===");
+  console.log("Method:", req.method);
+  console.log("URL:", req.originalUrl);
+  console.log("Headers:", req.headers);
+  console.log("Params:", req.params);
+  console.log("Query:", req.query);
+  console.log("Body:", req.body);
+
+  next();
+});
+
 //routes
 app.get("/", (_req: Request, res: Response) => {
   res.send(`Your API is running on port: ${PORT}`);

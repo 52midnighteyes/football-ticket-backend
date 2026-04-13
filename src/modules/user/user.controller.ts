@@ -1,6 +1,12 @@
 import { Response, Request, NextFunction } from "express";
-import { TUuidParams } from "../auth/auth.schemas.js";
-import { getUserService, uploadUserAvatarService } from "./user.service.js";
+import { TEmailParams, TUuidParams } from "../auth/auth.schemas.js";
+import {
+  checkUserByEmailService,
+  checkUserByReferralCodeService,
+  getUserService,
+  uploadUserAvatarService,
+} from "./user.service.js";
+import { AppError } from "../../class/appError.js";
 
 export const getUserController = async (
   req: Request,
@@ -26,12 +32,57 @@ export const uploadUserAvatarController = async (
 ) => {
   try {
     const { file } = req;
+    if (!file) throw new AppError(400, "No file uploaded");
     const id = req.user?.id as string;
-    await uploadUserAvatarService(id, file!);
+    await uploadUserAvatarService(id, file);
     res.status(200).json({
       status: "success",
       message: "Avatar uploaded successfully",
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const checkUserByReferralCodeController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { referralCode } = req.validated?.params as { referralCode: string };
+    const result = await checkUserByReferralCodeService(referralCode);
+    if (result === 1) {
+      res.status(200).json({
+        message: "Referral code is valid",
+      });
+    } else {
+      res.status(200).json({
+        message: "Referral code is invalid",
+      });
+    }
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const checkUserByEmailController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { email } = req.validated?.body as TEmailParams;
+    const result = await checkUserByEmailService(email);
+    if (result === 1) {
+      res.status(200).json({
+        message: "Email is already in use",
+      });
+    } else {
+      res.status(200).json({
+        message: "Email is available",
+      });
+    }
   } catch (error) {
     next(error);
   }

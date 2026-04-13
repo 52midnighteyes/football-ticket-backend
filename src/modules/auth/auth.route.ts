@@ -10,6 +10,7 @@ import {
   verifyParamsSchema,
 } from "./auth.schemas.js";
 import {
+  checkResetTokenController,
   forgotPasswordController,
   forgotPasswordRequestController,
   loginController,
@@ -22,6 +23,11 @@ import {
 import { verifyAccessToken } from "../../middlewares/tokenVerification/tokenVerification.middleware.js";
 
 const router = Router();
+router.get(
+  "/token/:token",
+  validateSchema(tokenParamsSchema, "params"),
+  checkResetTokenController,
+);
 
 router.post(
   "/register",

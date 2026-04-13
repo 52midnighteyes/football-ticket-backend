@@ -3,14 +3,20 @@ import {
   deleteFromCloudinary,
   uploadToCloudinary,
 } from "../../libs/cloudinary/cloudinary.lib.js";
-import { findUserById, updateUserAvatar } from "./user.repository.js";
+import { toUserPayload } from "../auth/auth.helper.js";
+import {
+  findUserByEmail,
+  findUserById,
+  findUserByReferralCode,
+  updateUserAvatar,
+} from "./user.repository.js";
 
 export const getUserService = async (id: string) => {
   try {
     const isExist = await findUserById(id);
     if (!isExist) throw new AppError(404, "User not found");
 
-    const { passwordHash, ...user } = isExist;
+    const user = toUserPayload(isExist);
 
     return user;
   } catch (error) {
@@ -48,6 +54,26 @@ export const uploadUserAvatarService = async (
     }
   } catch (error) {
     if (isUploaded) deleteFromCloudinary(publicId);
+    throw error;
+  }
+};
+
+export const checkUserByReferralCodeService = async (referralCode: string) => {
+  try {
+    const isExist = await findUserByReferralCode(referralCode);
+    if (!isExist) return 0;
+    return 1;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const checkUserByEmailService = async (email: string) => {
+  try {
+    const isExist = await findUserByEmail(email);
+    if (!isExist) return 0;
+    return 1;
+  } catch (error) {
     throw error;
   }
 };

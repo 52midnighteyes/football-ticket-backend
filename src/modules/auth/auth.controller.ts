@@ -9,6 +9,7 @@ import type {
 } from "./auth.schemas.js";
 import { refreshTokenConfig } from "../../constant/cookie-options.constant.js";
 import {
+  checkResetTokenService,
   forgotPasswordRequestService,
   forgotPasswordService,
   loginService,
@@ -78,6 +79,7 @@ export const refreshTokenController = async (
     res.cookie("refreshToken", refreshToken, refreshTokenConfig);
     res.status(200).json({ message: "Token refreshed successfully", data });
   } catch (error) {
+    res.clearCookie("refreshToken", refreshTokenConfig);
     next(error);
   }
 };
@@ -89,16 +91,19 @@ export const logoutController = async (
 ) => {
   try {
     const oldRefreshToken = req.cookies.refreshToken;
+
     if (!oldRefreshToken) {
       res.clearCookie("refreshToken", refreshTokenConfig);
-      return res.status(200).json({ message: "logout successfull!" });
+      return res.status(200).json({ message: "Logout successful!" });
     }
+
     await logoutService(oldRefreshToken);
 
     res.clearCookie("refreshToken", refreshTokenConfig);
-    res.status(200).json({ message: "logout successfull!" });
+    return res.status(200).json({ message: "Logout successful!" });
   } catch (error) {
-    next(error);
+    res.clearCookie("refreshToken", refreshTokenConfig);
+    return next(error);
   }
 };
 
@@ -127,7 +132,7 @@ export const updatePasswordController = async (
 
     await updatePasswordService({ ...data, userId });
 
-    res.status(201).json({ message: "update password successfull" });
+    res.status(201).json({ message: "Update password successful" });
   } catch (error) {
     next(error);
   }
@@ -165,6 +170,20 @@ export const forgotPasswordController = async (
       message:
         "Password reset successful. You can now log in with your new password",
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const checkResetTokenController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { token } = req.validated?.params as TTokenParams;
+    const data = await checkResetTokenService(token);
+    res.status(200).json({ message: "Token is valid", data });
   } catch (error) {
     next(error);
   }

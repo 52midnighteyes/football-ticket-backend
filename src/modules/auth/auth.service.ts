@@ -44,7 +44,6 @@ import { sendMail } from "../../libs/mailer/nodemailer.libs.js";
 import {
   FRONTEND_URL,
   JWT_SECRET,
-  RESET_TOKEN_SECRET,
   VERIFY_TOKEN_SECRET,
 } from "../../config/config.js";
 import { TJwtTokenPayload } from "../../middlewares/tokenVerification/tokenVerification.schema.js";
@@ -286,17 +285,6 @@ export const updatePasswordService = async (
   }
 };
 
-/*
-forgot password
-
-verify jwt
-jwt isinya IUserParams
-ambil idnya
-rewrite
-
-
-*/
-
 export const forgotPasswordRequestService = async (email: string) => {
   try {
     const user = await findUserByEmail(email);
@@ -317,11 +305,14 @@ export const forgotPasswordRequestService = async (email: string) => {
         "request-forgot-password.mail.hbs",
         {
           name: `${user.firstName} ${user.lastName}`,
-          url: `${FRONTEND_URL}/forgot-password/${token}`,
+          url: `${FRONTEND_URL}/forgot-password-verification/${token}`,
         },
       );
 
       await sendMail(user.email, titleMessage, html);
+      return;
+    } else {
+      return;
     }
   } catch (error) {
     throw error;
@@ -357,6 +348,17 @@ export const forgotPasswordService = async (
           "race condition detected, failed to revoke reset token",
         );
     });
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const checkResetTokenService = async (token: string) => {
+  try {
+    const tokenHash = hashToken(token);
+    const found = await findResetToken(tokenHash);
+    if (!found) return 0;
+    return 1;
   } catch (error) {
     throw error;
   }

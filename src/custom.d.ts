@@ -6,7 +6,7 @@ export interface IUserParams {
   firstName: string;
   lastName: string;
   role: UserRole;
-  avatarUrl: string | undefined;
+  avatarUrl: string | null;
 }
 
 export interface IValidatedRequest {
