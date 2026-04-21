@@ -13,14 +13,15 @@ cloudinary.config({
   api_secret: CLOUDINARY_API_SECRET,
 });
 
-const BASE_PARENT_FOLDER = "FOOTBALL_APP";
+const BASE_PARENT_FOLDER = "TICKETING-APP";
 
 export const uploadToCloudinary = (
   file: Express.Multer.File,
   id: string,
+  type: "AVATAR" | "TRANSACTION_PROOF",
 ): Promise<UploadApiResponse> => {
   return new Promise((resolve, reject) => {
-    const folder = `${BASE_PARENT_FOLDER}/${id}/images`;
+    const folder = `${BASE_PARENT_FOLDER}/${id}/${type}`;
 
     const stream = cloudinary.uploader.upload_stream(
       { folder },

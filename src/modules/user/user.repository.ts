@@ -1,7 +1,4 @@
-import type {
-  UserCreateInput,
-  UserUncheckedCreateInput,
-} from "../../../generated/prisma/models.js";
+import type { UserUncheckedCreateInput } from "../../../generated/prisma/models.js";
 import { prisma } from "../../libs/prisma/prisma.lib.js";
 import type { TPrisma } from "../../libs/prisma/prisma.types.js";
 
@@ -61,5 +58,22 @@ export const updateManyUserPassword = async (
   return await db.user.updateMany({
     where: { id: params.id },
     data: { passwordHash: params.passwordHash },
+  });
+};
+
+export const updateUserAvatar = async (
+  params: {
+    avatarUrl: string;
+    avatarPublicId: string;
+    id: string;
+  },
+  db: TPrisma = prisma,
+) => {
+  return await db.user.update({
+    where: { id: params.id },
+    data: {
+      avatarPublicId: params.avatarPublicId,
+      avatarUrl: params.avatarUrl,
+    },
   });
 };

@@ -6,6 +6,8 @@ export interface IUserParams {
   firstName: string;
   lastName: string;
   role: UserRole;
+  avatarUrl: string | null;
+  isVerified: boolean;
 }
 
 export interface IValidatedRequest {

@@ -10,23 +10,30 @@ import {
   verifyParamsSchema,
 } from "./auth.schemas.js";
 import {
+  checkResetTokenController,
   forgotPasswordController,
   forgotPasswordRequestController,
   loginController,
   logoutController,
   refreshTokenController,
   registerController,
+  resendVerificationEmailController,
   updatePasswordController,
   verifyUserController,
 } from "./auth.controller.js";
 import { verifyAccessToken } from "../../middlewares/tokenVerification/tokenVerification.middleware.js";
 
 const router = Router();
+router.get(
+  "/token/:token",
+  validateSchema(tokenParamsSchema, "params"),
+  checkResetTokenController
+);
 
 router.post(
   "/register",
   validateSchema(registerUserSchema, "body"),
-  registerController,
+  registerController
 );
 
 router.post("/login", validateSchema(loginSchema, "body"), loginController);
@@ -38,27 +45,33 @@ router.post("/logout", logoutController);
 router.post(
   "/verify/:token",
   validateSchema(verifyParamsSchema, "params"),
-  verifyUserController,
+  verifyUserController
 );
 
 router.post(
   "/update-password",
   verifyAccessToken,
   validateSchema(updatePasswordSchema, "body"),
-  updatePasswordController,
+  updatePasswordController
 );
 
 router.post(
   "/request-forgot-password",
   validateSchema(emailSchema, "body"),
-  forgotPasswordRequestController,
+  forgotPasswordRequestController
 );
 
 router.post(
   "/forgot-password/:token",
   validateSchema(forgotPasswordSchema, "body"),
   validateSchema(tokenParamsSchema, "params"),
-  forgotPasswordController,
+  forgotPasswordController
+);
+
+router.post(
+  "/resend-verification-email",
+  verifyAccessToken,
+  resendVerificationEmailController
 );
 
 export default router;

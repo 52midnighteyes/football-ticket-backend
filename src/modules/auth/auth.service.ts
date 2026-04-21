@@ -44,7 +44,6 @@ import { sendMail } from "../../libs/mailer/nodemailer.libs.js";
 import {
   FRONTEND_URL,
   JWT_SECRET,
-  RESET_TOKEN_SECRET,
   VERIFY_TOKEN_SECRET,
 } from "../../config/config.js";
 import { TJwtTokenPayload } from "../../middlewares/tokenVerification/tokenVerification.schema.js";
@@ -59,9 +58,9 @@ import { createCoupon } from "../coupon/coupon.repository.js";
 
 export const registerService = async (params: TRegisterParams) => {
   let referrerUserId: string | null = null;
-  let emailSent = true;
   const { referrerCode, password, ...data } = params;
   const fullName = params.firstName + " " + params.lastName;
+  let isEmailSent = true;
 
   try {
     const checkUser = await findUserByEmail(params.email);
@@ -91,17 +90,17 @@ export const registerService = async (params: TRegisterParams) => {
       {
         name: fullName,
         url: `${FRONTEND_URL}/verify/${verifyToken}`,
-      },
+      }
     );
 
     try {
       await sendMail(user.email, welcomeMessage, html);
     } catch (error) {
       console.error("Failed to send verification email:", error);
-      emailSent = false;
+      isEmailSent = false;
     }
 
-    return emailSent;
+    return isEmailSent;
   } catch (error) {
     throw error;
   }
@@ -145,7 +144,7 @@ export const refreshTokenService = async (oldRefreshToken: string) => {
     return await prisma.$transaction(async (tx) => {
       const checkToken = await findRefreshTokenByHashedToken(
         oldHashedToken,
-        tx,
+        tx
       );
 
       if (
@@ -169,7 +168,7 @@ export const refreshTokenService = async (oldRefreshToken: string) => {
 
       const consume = await updateManyRefreshTokenByHashedToken(
         oldHashedToken,
-        tx,
+        tx
       );
 
       if (consume.count === 0)
@@ -199,12 +198,13 @@ export const logoutService = async (oldRefreshToken: string) => {
     const checkToken = await findRefreshTokenByHashedToken(oldHashedToken);
     if (!checkToken) throw new AppError(404, "Refresh token not found");
 
-    const revokeToken =
-      await revokeManyRefreshTokenByHashedToken(oldHashedToken);
+    const revokeToken = await revokeManyRefreshTokenByHashedToken(
+      oldHashedToken
+    );
     if (revokeToken.count === 0)
       throw new AppError(
         500,
-        "race condition detected, failed to revoke refresh token",
+        "race condition detected, failed to revoke refresh token"
       );
   } catch (error) {
     console.error("Failed to delete refresh token during logout:", error);
@@ -216,8 +216,14 @@ export const verifyUserService = async (token: string) => {
   try {
     const data: TJwtTokenPayload = verifyJwtToken(token);
     const user = await findUserById(data.id);
-    if (!user) throw new AppError(404, "credentials not found");
-    if (user.isVerified) throw new AppError(409, "User is already verified");
+    if (!user)
+      throw new AppError(
+        404,
+        "BE: creadentials invalid. please request new verification email from your profile page"
+      );
+
+    if (user.isVerified)
+      throw new AppError(409, "BE: User is already verified");
 
     await prisma.$transaction(async (tx) => {
       const verified = await verifyManyUserById(data.id, tx);
@@ -254,13 +260,21 @@ export const verifyUserService = async (token: string) => {
         await createCoupon(couponPayload, tx);
       }
     });
+
+    const payload = toUserPayload({ ...user, isVerified: true });
+    const accessToken = generateJwtToken(payload, JWT_SECRET, "15m");
+
+    return {
+      accessToken,
+      user: payload,
+    };
   } catch (error) {
     throw error;
   }
 };
 
 export const updatePasswordService = async (
-  params: TUpdatePassword & { userId: string },
+  params: TUpdatePassword & { userId: string }
 ) => {
   try {
     const user = await findUserById(params.userId);
@@ -268,7 +282,7 @@ export const updatePasswordService = async (
 
     const compareOldPassword = await comparePassword(
       user.passwordHash,
-      params.oldPassword,
+      params.oldPassword
     );
     if (!compareOldPassword) throw new AppError(422, "Validation failed");
 
@@ -285,17 +299,6 @@ export const updatePasswordService = async (
     throw error;
   }
 };
-
-/*
-forgot password
-
-verify jwt
-jwt isinya IUserParams
-ambil idnya
-rewrite
-
-
-*/
 
 export const forgotPasswordRequestService = async (email: string) => {
   try {
@@ -317,11 +320,14 @@ export const forgotPasswordRequestService = async (email: string) => {
         "request-forgot-password.mail.hbs",
         {
           name: `${user.firstName} ${user.lastName}`,
-          url: `${FRONTEND_URL}/forgot-password/${token}`,
-        },
+          url: `${FRONTEND_URL}/forgot-password-verification/${token}`,
+        }
       );
 
       await sendMail(user.email, titleMessage, html);
+      return;
+    } else {
+      return;
     }
   } catch (error) {
     throw error;
@@ -330,7 +336,7 @@ export const forgotPasswordRequestService = async (email: string) => {
 
 export const forgotPasswordService = async (
   token: string,
-  newPassword: string,
+  newPassword: string
 ) => {
   try {
     const tokenHash = hashToken(token);
@@ -344,7 +350,7 @@ export const forgotPasswordService = async (
           id: found.userId,
           passwordHash: newPasswordHash,
         },
-        tx,
+        tx
       );
 
       if (updatePassword.count === 0)
@@ -354,9 +360,54 @@ export const forgotPasswordService = async (
       if (revokeToken.count === 0)
         throw new AppError(
           404,
-          "race condition detected, failed to revoke reset token",
+          "race condition detected, failed to revoke reset token"
         );
     });
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const checkResetTokenService = async (token: string) => {
+  try {
+    const tokenHash = hashToken(token);
+    const found = await findResetToken(tokenHash);
+    if (!found) return 0;
+    return 1;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const resendVerificationEmailService = async (userId: string) => {
+  let isEmailSent = true;
+  try {
+    const user = await findUserById(userId);
+    if (!user) throw new AppError(404, "User resource not found");
+    if (user.isVerified) throw new AppError(409, "User is already verified");
+
+    const payload = toUserPayload(user);
+    const verifyToken = generateJwtToken(payload, VERIFY_TOKEN_SECRET, "30d");
+
+    const fullName = user.firstName + " " + user.lastName;
+    const welcomeMessage = "Welcome to MATCHPASS";
+    const html = await compileHandlebars(
+      EMAIL_TEMPLATES_DIR,
+      "register.mail.hbs",
+      {
+        name: fullName,
+        url: `${FRONTEND_URL}/verify/${verifyToken}`,
+      }
+    );
+
+    try {
+      await sendMail(user.email, welcomeMessage, html);
+    } catch (error) {
+      isEmailSent = false;
+      console.error("Failed to send verification email:", error);
+    }
+
+    return isEmailSent;
   } catch (error) {
     throw error;
   }
