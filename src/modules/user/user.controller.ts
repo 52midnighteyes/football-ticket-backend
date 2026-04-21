@@ -4,6 +4,7 @@ import {
   checkUserByEmailService,
   checkUserByReferralCodeService,
   getUserService,
+  meService,
   uploadUserAvatarService,
 } from "./user.service.js";
 import { AppError } from "../../class/appError.js";
@@ -11,7 +12,7 @@ import { AppError } from "../../class/appError.js";
 export const getUserController = async (
   req: Request,
   res: Response,
-  next: NextFunction,
+  next: NextFunction
 ) => {
   try {
     const { id } = req.validated?.params as TUuidParams;
@@ -28,16 +29,16 @@ export const getUserController = async (
 export const uploadUserAvatarController = async (
   req: Request,
   res: Response,
-  next: NextFunction,
+  next: NextFunction
 ) => {
   try {
     const { file } = req;
     if (!file) throw new AppError(400, "No file uploaded");
     const id = req.user?.id as string;
-    await uploadUserAvatarService(id, file);
+    const data = await uploadUserAvatarService(id, file);
     res.status(200).json({
-      status: "success",
       message: "Avatar uploaded successfully",
+      data,
     });
   } catch (error) {
     next(error);
@@ -47,7 +48,7 @@ export const uploadUserAvatarController = async (
 export const checkUserByReferralCodeController = async (
   req: Request,
   res: Response,
-  next: NextFunction,
+  next: NextFunction
 ) => {
   try {
     const { referralCode } = req.validated?.params as { referralCode: string };
@@ -69,7 +70,7 @@ export const checkUserByReferralCodeController = async (
 export const checkUserByEmailController = async (
   req: Request,
   res: Response,
-  next: NextFunction,
+  next: NextFunction
 ) => {
   try {
     const { email } = req.validated?.body as TEmailParams;
@@ -83,6 +84,23 @@ export const checkUserByEmailController = async (
         message: "Email is available",
       });
     }
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const meController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const id = req.user?.id as string;
+    const data = await meService(id);
+    res.status(200).json({
+      status: "success",
+      data,
+    });
   } catch (error) {
     next(error);
   }

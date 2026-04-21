@@ -19,20 +19,13 @@ app.use(
   cors({
     origin: FRONTEND_URL,
     credentials: true,
-  }),
+  })
 );
 app.use(helmet());
 app.use(express.json());
 
-app.use("/", (req: Request, res: Response, next: NextFunction) => {
-  console.log("=== Incoming Request ===");
-  console.log("Method:", req.method);
-  console.log("URL:", req.originalUrl);
-  console.log("Headers:", req.headers);
-  console.log("Params:", req.params);
-  console.log("Query:", req.query);
-  console.log("Body:", req.body);
-
+app.use("/", (req: Request, _res: Response, next: NextFunction) => {
+  console.log(`${req.method} ${req.originalUrl}`);
   next();
 });
 

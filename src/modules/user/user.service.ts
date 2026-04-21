@@ -26,18 +26,20 @@ export const getUserService = async (id: string) => {
 
 export const uploadUserAvatarService = async (
   id: string,
-  avatarUrl: Express.Multer.File,
+  avatarUrl: Express.Multer.File
 ) => {
   let isUploaded = false;
   let publicId: string = "";
+  let isAvatarExist: boolean = false;
   try {
     const user = await findUserById(id);
     if (!user) throw new AppError(404, "User not found");
+    isAvatarExist = !!user.avatarPublicId;
 
     const { public_id, secure_url } = await uploadToCloudinary(
       avatarUrl,
       user.id,
-      "AVATAR",
+      "AVATAR"
     );
 
     isUploaded = true;
@@ -52,8 +54,11 @@ export const uploadUserAvatarService = async (
     if (user.avatarPublicId) {
       await deleteFromCloudinary(user.avatarPublicId);
     }
+
+    const userPayload = toUserPayload({ ...user, avatarUrl: secure_url });
+    return { user: userPayload };
   } catch (error) {
-    if (isUploaded) deleteFromCloudinary(publicId);
+    if (isUploaded && isAvatarExist) deleteFromCloudinary(publicId);
     throw error;
   }
 };
@@ -73,6 +78,19 @@ export const checkUserByEmailService = async (email: string) => {
     const isExist = await findUserByEmail(email);
     if (!isExist) return 0;
     return 1;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const meService = async (id: string) => {
+  try {
+    const isExist = await findUserById(id);
+    if (!isExist) throw new AppError(404, "User not found");
+
+    const user = toUserPayload(isExist);
+
+    return user;
   } catch (error) {
     throw error;
   }

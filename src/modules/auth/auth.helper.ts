@@ -17,7 +17,7 @@ import { jwtTokenSchema } from "../../middlewares/tokenVerification/tokenVerific
 export const generateJwtToken = (
   params: IUserParams,
   secret: string,
-  expiresTime: "15m" | "30m" | "24hr" | "30d",
+  expiresTime: "15m" | "30m" | "24hr" | "30d"
 ) => {
   return Jwt.sign(params, secret, {
     expiresIn: expiresTime,
@@ -45,6 +45,7 @@ export const toUserPayload = (params: User): IUserParams => {
     lastName: params.lastName,
     role: params.role,
     avatarUrl: params.avatarUrl || null,
+    isVerified: params.isVerified,
   };
 };
 
@@ -57,7 +58,7 @@ export const hashPassword = async (password: string) => {
 
 export const comparePassword = async (
   passwordHash: string,
-  password: string,
+  password: string
 ) => {
   return await argon2.verify(passwordHash, password, {
     secret: Buffer.from(PEPPER),
@@ -74,7 +75,7 @@ export const handleReferral = async (referrerCode: string) => {
 //MVP OLNY! rawan race condition dan duplicate di traffic tinggi.
 export const createUserWithUniqueReferral = async (
   name: string,
-  data: TRegisterUserPayload,
+  data: TRegisterUserPayload
 ) => {
   try {
     let codeLength = 6;

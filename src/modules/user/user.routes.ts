@@ -3,6 +3,7 @@ import {
   checkUserByEmailController,
   checkUserByReferralCodeController,
   getUserController,
+  meController,
   uploadUserAvatarController,
 } from "./user.controller.js";
 import { verifyAccessToken } from "../../middlewares/tokenVerification/tokenVerification.middleware.js";
@@ -16,26 +17,27 @@ const router = Router();
 router.post(
   "/check-email",
   validateSchema(emailSchema, "body"),
-  checkUserByEmailController,
+  checkUserByEmailController
 );
 
+router.get("/me", verifyAccessToken, meController);
 router.get(
   "/:id",
   validateSchema(uuidParamsSchema, "params"),
-  getUserController,
+  getUserController
 );
 
-router.post(
+router.patch(
   "/avatar",
   verifyAccessToken,
   upload.single("avatar"),
-  uploadUserAvatarController,
+  uploadUserAvatarController
 );
 
 router.get(
   "/referral/:referralCode",
   validateSchema(referralCodeParamsSchema, "params"),
-  checkUserByReferralCodeController,
+  checkUserByReferralCodeController
 );
 
 export default router;
