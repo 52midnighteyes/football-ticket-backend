@@ -9,6 +9,9 @@ import { errorHandler } from "./middlewares/errorHandler.middleware.js";
 
 import AuthRouter from "./modules/auth/auth.route.js";
 import UserRouter from "./modules/user/user.routes.js";
+import EventRouter from "./modules/event/event.routes.js";
+import CityRouter from "./modules/city/city.routes.js";
+import CategoryRouter from "./modules/category/category.routes.js";
 
 const app = express();
 
@@ -19,10 +22,25 @@ app.use(
   cors({
     origin: FRONTEND_URL,
     credentials: true,
-  })
+  }),
 );
 app.use(helmet());
 app.use(express.json());
+
+app.use((req: Request, _res: Response, next: NextFunction) => {
+  console.log("===== Incoming Request =====");
+  console.log("Time     :", new Date().toISOString());
+  console.log("Method   :", req.method);
+  console.log("URL      :", req.originalUrl);
+  console.log("Headers  :", req.headers);
+  console.log("Body     :", req.body);
+  console.log("Query    :", req.query);
+  console.log("File     :", req.file);
+  console.log("refreshToken :", req.cookies.refreshToken);
+  console.log("============================\n");
+
+  next();
+});
 
 app.use("/", (req: Request, _res: Response, next: NextFunction) => {
   console.log(`${req.method} ${req.originalUrl}`);
@@ -36,6 +54,9 @@ app.get("/", (_req: Request, res: Response) => {
 
 app.use("/api/auth", AuthRouter);
 app.use("/api/users", UserRouter);
+app.use("/api/event", EventRouter);
+app.use("/api/cities", CityRouter);
+app.use("/api/categories", CategoryRouter);
 
 //route not found handler
 app.use((_req, _res, next) => {

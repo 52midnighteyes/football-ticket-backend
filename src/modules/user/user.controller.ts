@@ -12,7 +12,7 @@ import { AppError } from "../../class/appError.js";
 export const getUserController = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { id } = req.validated?.params as TUuidParams;
@@ -29,7 +29,7 @@ export const getUserController = async (
 export const uploadUserAvatarController = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { file } = req;
@@ -48,7 +48,7 @@ export const uploadUserAvatarController = async (
 export const checkUserByReferralCodeController = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { referralCode } = req.validated?.params as { referralCode: string };
@@ -70,7 +70,7 @@ export const checkUserByReferralCodeController = async (
 export const checkUserByEmailController = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { email } = req.validated?.body as TEmailParams;
@@ -92,7 +92,7 @@ export const checkUserByEmailController = async (
 export const meController = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const id = req.user?.id as string;
