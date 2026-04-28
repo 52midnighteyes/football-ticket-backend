@@ -5,6 +5,7 @@ import {
   getPublicIdFromCloudinaryUrl,
   uploadToCloudinary,
 } from "../../libs/cloudinary/cloudinary.lib.js";
+import { prisma } from "../../libs/prisma/prisma.lib.js";
 import type { Prisma } from "../../../generated/prisma/client.js";
 import { UserRole } from "../../../generated/prisma/enums.js";
 import {
@@ -15,11 +16,11 @@ import {
   findEventById,
   findManyEvents,
   updateEvent,
+  updateTicketType,
 } from "./event.repository.js";
 import type {
   TCreateEventBody,
   TGetEventsQuery,
-  TCreateTicketTypeBody,
   TUpdateEventBody,
 } from "./event.schemas.js";
 
@@ -50,6 +51,7 @@ export const createEventService = async (
       throw new AppError(403, "You are not allowed to create this event");
     }
 
+    const { ticketTypes, ...eventPayload } = payload;
     const slug = createSlug(payload.name);
     const { public_id, secure_url } = await uploadToCloudinary(
       file,
@@ -61,10 +63,38 @@ export const createEventService = async (
     publicId = public_id;
 
     return await createEvent({
-      ...payload,
-      organizerId,
+      organizer: {
+        connect: {
+          id: organizerId,
+        },
+      },
+      category: {
+        connect: {
+          id: eventPayload.categoryId,
+        },
+      },
+      city: {
+        connect: {
+          id: eventPayload.cityId,
+        },
+      },
+      name: eventPayload.name,
       slug,
+      description: eventPayload.description,
       bannerUrl: secure_url,
+      venue: eventPayload.venue,
+      address: eventPayload.address,
+      startAt: eventPayload.startAt,
+      endAt: eventPayload.endAt,
+      status: eventPayload.status,
+      ticketTypes: {
+        create: ticketTypes.map((ticketType) => ({
+          name: ticketType.name,
+          price: ticketType.price,
+          quota: ticketType.quota,
+          isActive: ticketType.isActive,
+        })),
+      },
     });
   } catch (error) {
     if (isUploaded) await deleteFromCloudinary(publicId);
@@ -123,6 +153,7 @@ export const updateEventService = async (
       throw new AppError(403, "You are not allowed to update this event");
     }
 
+    const { ticketTypes, ...eventPayload } = payload;
     let nextBannerUrl = existingEvent.bannerUrl;
     if (file) {
       const { public_id, secure_url } = await uploadToCloudinary(
@@ -136,15 +167,77 @@ export const updateEventService = async (
       nextBannerUrl = secure_url;
     }
 
-    const updatedEvent = await updateEvent(id, {
-      ...payload,
-      slug: createSlug(payload.name),
-      bannerUrl: nextBannerUrl,
+    await prisma.$transaction(async (tx) => {
+      await updateEvent(
+        id,
+        {
+          category: {
+            connect: {
+              id: eventPayload.categoryId,
+            },
+          },
+          city: {
+            connect: {
+              id: eventPayload.cityId,
+            },
+          },
+          name: eventPayload.name,
+          slug: createSlug(eventPayload.name),
+          description: eventPayload.description,
+          bannerUrl: nextBannerUrl,
+          venue: eventPayload.venue,
+          address: eventPayload.address,
+          startAt: eventPayload.startAt,
+          endAt: eventPayload.endAt,
+          status: eventPayload.status,
+        },
+        tx,
+      );
+
+      const existingTicketTypes = new Map(
+        existingEvent.ticketTypes.map((ticketType) => [ticketType.id, ticketType]),
+      );
+
+      for (const ticketType of ticketTypes) {
+        if (ticketType.id) {
+          const existingTicketType = existingTicketTypes.get(ticketType.id);
+          if (!existingTicketType) {
+            throw new AppError(404, "Ticket type not found");
+          }
+
+          await updateTicketType(
+            ticketType.id,
+            {
+              name: ticketType.name,
+              price: ticketType.price,
+              quota: ticketType.quota,
+              isActive: ticketType.isActive,
+            },
+            tx,
+          );
+
+          continue;
+        }
+
+        await createTicketType(
+          {
+            eventId: id,
+            name: ticketType.name,
+            price: ticketType.price,
+            quota: ticketType.quota,
+            isActive: ticketType.isActive,
+          },
+          tx,
+        );
+      }
     });
 
     if (file && existingEvent.bannerUrl !== nextBannerUrl) {
       await deleteBannerByUrl(existingEvent.bannerUrl);
     }
+
+    const updatedEvent = await findEventById(id);
+    if (!updatedEvent) throw new AppError(404, "Event not found");
 
     return updatedEvent;
   } catch (error) {
@@ -170,11 +263,16 @@ export const deleteOwnedEventService = async (
   return deletedEvent;
 };
 
-export const createTicketTypeService = async (
+export const createTicketTypesService = async (
   actorId: string,
   actorRole: UserRole,
   eventId: string,
-  payload: TCreateTicketTypeBody,
+  payload: Array<{
+    name: string;
+    price: number;
+    quota: number;
+    isActive: boolean;
+  }>,
 ) => {
   const event = await findEventById(eventId);
   if (!event) throw new AppError(404, "Event not found");
@@ -185,8 +283,21 @@ export const createTicketTypeService = async (
     );
   }
 
-  return createTicketType({
-    ...payload,
-    eventId,
+  return prisma.$transaction(async (tx) => {
+    const ticketTypes = [];
+
+    for (const ticketType of payload) {
+      ticketTypes.push(
+        await createTicketType(
+          {
+            ...ticketType,
+            eventId,
+          },
+          tx,
+        ),
+      );
+    }
+
+    return ticketTypes;
   });
 };

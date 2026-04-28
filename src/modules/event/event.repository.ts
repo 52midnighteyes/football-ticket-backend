@@ -1,18 +1,16 @@
-import type {
-  EventUncheckedCreateInput,
-  EventUncheckedUpdateInput,
-  TicketTypeUncheckedCreateInput,
-} from "../../../generated/prisma/models.js";
 import type { Prisma } from "../../../generated/prisma/client.js";
 import { prisma } from "../../libs/prisma/prisma.lib.js";
 import type { TPrisma } from "../../libs/prisma/prisma.types.js";
 
 export const createEvent = async (
-  data: EventUncheckedCreateInput,
+  data: Prisma.EventCreateInput,
   db: TPrisma = prisma,
 ) => {
   return db.event.create({
     data,
+    include: {
+      ticketTypes: true,
+    },
   });
 };
 
@@ -63,12 +61,15 @@ export const findEventById = async (id: string, db: TPrisma = prisma) => {
 
 export const updateEvent = async (
   id: string,
-  data: EventUncheckedUpdateInput,
+  data: Prisma.EventUpdateInput,
   db: TPrisma = prisma,
 ) => {
   return db.event.update({
     where: { id },
     data,
+    include: {
+      ticketTypes: true,
+    },
   });
 };
 
@@ -82,10 +83,21 @@ export const deleteEvent = async (id: string, db: TPrisma = prisma) => {
 };
 
 export const createTicketType = async (
-  data: TicketTypeUncheckedCreateInput,
+  data: Prisma.TicketTypeUncheckedCreateInput,
   db: TPrisma = prisma,
 ) => {
   return db.ticketType.create({
+    data,
+  });
+};
+
+export const updateTicketType = async (
+  id: string,
+  data: Prisma.TicketTypeUncheckedUpdateInput,
+  db: TPrisma = prisma,
+) => {
+  return db.ticketType.update({
+    where: { id },
     data,
   });
 };
