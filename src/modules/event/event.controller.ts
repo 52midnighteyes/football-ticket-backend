@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import { AppError } from "../../class/appError.js";
 import {
   TCreateEventBody,
-  TCreateTicketTypeBody,
+  TCreateTicketTypesBody,
   TEventIdParams,
   TGetEventsQuery,
   TOrganizerEventParams,
@@ -10,7 +10,7 @@ import {
 } from "./event.schemas.js";
 import {
   createEventService,
-  createTicketTypeService,
+  createTicketTypesService,
   deleteOwnedEventService,
   getEventsService,
   updateEventService,
@@ -113,19 +113,19 @@ export const createTicketTypeController = async (
 ) => {
   try {
     const { id } = req.validated?.params as TEventIdParams;
-    const payload = req.validated?.body as TCreateTicketTypeBody;
+    const payload = req.validated?.body as TCreateTicketTypesBody;
     const actor = req.user;
     if (!actor) throw new AppError(401, "Unauthorized");
 
-    const data = await createTicketTypeService(
+    const data = await createTicketTypesService(
       actor.id,
       actor.role,
       id,
-      payload,
+      payload.ticketTypes,
     );
 
     res.status(201).json({
-      message: "Ticket type created successfully",
+      message: "Ticket types created successfully",
       data,
     });
   } catch (error) {

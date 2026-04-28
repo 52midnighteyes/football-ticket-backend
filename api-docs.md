@@ -638,6 +638,7 @@ Response sukses:
 Kegunaan:
 
 - create event baru
+- sekalian create banyak ticket type dalam satu request
 
 Expected input:
 
@@ -656,7 +657,27 @@ Expected input:
   - `startAt` date string
   - `endAt` date string
   - `status` enum optional: `DRAFT` | `PUBLISHED` | `CANCELED` | `COMPLETED`
+  - `ticketTypes` JSON string array wajib
   - `bannerUrl` file image wajib
+
+Format `ticketTypes`:
+
+```json
+[
+  {
+    "name": "VIP",
+    "price": 250000,
+    "quota": 100,
+    "isActive": true
+  },
+  {
+    "name": "Regular",
+    "price": 100000,
+    "quota": 500,
+    "isActive": true
+  }
+]
+```
 
 Auth:
 
@@ -678,6 +699,7 @@ curl -X POST "http://localhost:8080/api/event/organizer/ORGANIZER_UUID" \
   -F "startAt=2026-05-10T19:00:00.000Z" \
   -F "endAt=2026-05-10T22:00:00.000Z" \
   -F "status=DRAFT" \
+  -F "ticketTypes=[{\"name\":\"VIP\",\"price\":250000,\"quota\":100,\"isActive\":true},{\"name\":\"Regular\",\"price\":100000,\"quota\":500,\"isActive\":true}]" \
   -F "bannerUrl=@C:/temp/banner.jpg"
 ```
 
@@ -700,6 +722,32 @@ Response sukses:
     "startAt": "2026-05-10T19:00:00.000Z",
     "endAt": "2026-05-10T22:00:00.000Z",
     "status": "DRAFT",
+    "ticketTypes": [
+      {
+        "id": "TICKET_TYPE_UUID_1",
+        "eventId": "EVENT_UUID",
+        "name": "VIP",
+        "price": 250000,
+        "quota": 100,
+        "isActive": true,
+        "isSoldOut": false,
+        "isDeleted": false,
+        "createdAt": "2026-04-28T08:00:00.000Z",
+        "updatedAt": "2026-04-28T08:00:00.000Z"
+      },
+      {
+        "id": "TICKET_TYPE_UUID_2",
+        "eventId": "EVENT_UUID",
+        "name": "Regular",
+        "price": 100000,
+        "quota": 500,
+        "isActive": true,
+        "isSoldOut": false,
+        "isDeleted": false,
+        "createdAt": "2026-04-28T08:00:00.000Z",
+        "updatedAt": "2026-04-28T08:00:00.000Z"
+      }
+    ],
     "createdAt": "2026-04-28T08:00:00.000Z",
     "updatedAt": "2026-04-28T08:00:00.000Z",
     "deletedAt": null
@@ -711,7 +759,7 @@ Response sukses:
 
 Kegunaan:
 
-- create ticket type untuk event tertentu
+- create banyak ticket type untuk event tertentu
 
 Expected input:
 
@@ -719,9 +767,11 @@ Expected input:
   - `id` UUID event id
 - query: none
 - body:
-  - `name` string
-  - `price` integer, minimum `0`
-  - `quota` integer, minimum `1`
+  - `ticketTypes` array of object
+    - `name` string
+    - `price` integer, minimum `0`
+    - `quota` integer, minimum `1`
+    - `isActive` boolean optional, default `true`
 
 Auth:
 
@@ -733,9 +783,20 @@ Contoh body:
 
 ```json
 {
-  "name": "VIP",
-  "price": 250000,
-  "quota": 100
+  "ticketTypes": [
+    {
+      "name": "VIP",
+      "price": 250000,
+      "quota": 100,
+      "isActive": true
+    },
+    {
+      "name": "Regular",
+      "price": 100000,
+      "quota": 500,
+      "isActive": true
+    }
+  ]
 }
 ```
 
@@ -743,16 +804,33 @@ Response sukses:
 
 ```json
 {
-  "message": "Ticket type created successfully",
-  "data": {
-    "id": "TICKET_TYPE_UUID",
-    "eventId": "EVENT_UUID",
-    "name": "VIP",
-    "price": 250000,
-    "quota": 100,
-    "createdAt": "2026-04-28T10:00:00.000Z",
-    "updatedAt": "2026-04-28T10:00:00.000Z"
-  }
+  "message": "Ticket types created successfully",
+  "data": [
+    {
+      "id": "TICKET_TYPE_UUID_1",
+      "eventId": "EVENT_UUID",
+      "name": "VIP",
+      "price": 250000,
+      "quota": 100,
+      "isActive": true,
+      "isSoldOut": false,
+      "isDeleted": false,
+      "createdAt": "2026-04-28T10:00:00.000Z",
+      "updatedAt": "2026-04-28T10:00:00.000Z"
+    },
+    {
+      "id": "TICKET_TYPE_UUID_2",
+      "eventId": "EVENT_UUID",
+      "name": "Regular",
+      "price": 100000,
+      "quota": 500,
+      "isActive": true,
+      "isSoldOut": false,
+      "isDeleted": false,
+      "createdAt": "2026-04-28T10:00:00.000Z",
+      "updatedAt": "2026-04-28T10:00:00.000Z"
+    }
+  ]
 }
 ```
 
@@ -761,6 +839,7 @@ Response sukses:
 Kegunaan:
 
 - update event
+- sekalian update atau tambah ticket type dari form yang sama
 
 Expected input:
 
@@ -779,12 +858,44 @@ Expected input:
   - `startAt` date string
   - `endAt` date string
   - `status` enum optional: `DRAFT` | `PUBLISHED` | `CANCELED` | `COMPLETED`
+  - `ticketTypes` JSON string array wajib
   - `bannerUrl` file image optional
+
+Format item `ticketTypes` saat update:
+
+```json
+[
+  {
+    "id": "TICKET_TYPE_UUID_1",
+    "name": "VIP",
+    "price": 300000,
+    "quota": 80,
+    "isActive": true
+  },
+  {
+    "id": "TICKET_TYPE_UUID_2",
+    "name": "Regular",
+    "price": 100000,
+    "quota": 500,
+    "isActive": false
+  },
+  {
+    "name": "Tribune",
+    "price": 150000,
+    "quota": 200,
+    "isActive": true
+  }
+]
+```
 
 Catatan:
 
 - untuk MVP, kirim semua field lagi saat update
 - kalau banner baru dikirim, banner lama akan dihapus
+- ticket type tidak di-delete dari flow ini
+- kalau mau "hapus" dari sisi bisnis, kirim item itu dengan `isActive: false`
+- item yang punya `id` akan di-update
+- item tanpa `id` akan di-create sebagai ticket type baru
 
 Auth:
 
@@ -810,6 +921,44 @@ Response sukses:
     "startAt": "2026-05-10T19:00:00.000Z",
     "endAt": "2026-05-10T22:30:00.000Z",
     "status": "PUBLISHED",
+    "ticketTypes": [
+      {
+        "id": "TICKET_TYPE_UUID_1",
+        "eventId": "EVENT_UUID",
+        "name": "VIP",
+        "price": 300000,
+        "quota": 80,
+        "isActive": true,
+        "isSoldOut": false,
+        "isDeleted": false,
+        "createdAt": "2026-04-28T08:00:00.000Z",
+        "updatedAt": "2026-04-28T09:00:00.000Z"
+      },
+      {
+        "id": "TICKET_TYPE_UUID_2",
+        "eventId": "EVENT_UUID",
+        "name": "Regular",
+        "price": 100000,
+        "quota": 500,
+        "isActive": false,
+        "isSoldOut": false,
+        "isDeleted": false,
+        "createdAt": "2026-04-28T08:00:00.000Z",
+        "updatedAt": "2026-04-28T09:00:00.000Z"
+      },
+      {
+        "id": "TICKET_TYPE_UUID_3",
+        "eventId": "EVENT_UUID",
+        "name": "Tribune",
+        "price": 150000,
+        "quota": 200,
+        "isActive": true,
+        "isSoldOut": false,
+        "isDeleted": false,
+        "createdAt": "2026-04-28T09:00:00.000Z",
+        "updatedAt": "2026-04-28T09:00:00.000Z"
+      }
+    ],
     "createdAt": "2026-04-28T08:00:00.000Z",
     "updatedAt": "2026-04-28T09:00:00.000Z",
     "deletedAt": null

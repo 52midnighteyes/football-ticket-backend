@@ -5,7 +5,7 @@ import { verifyAccessToken } from "../../middlewares/tokenVerification/tokenVeri
 import { validateSchema } from "../../middlewares/zodValidator.middleware.js";
 import {
   createEventBodySchema,
-  createTicketTypeBodySchema,
+  createTicketTypesBodySchema,
   eventIdParamsSchema,
   getEventsQuerySchema,
   organizerEventParamsSchema,
@@ -61,7 +61,7 @@ router.post(
   verifyAccessToken,
   roleGuard(UserRole.ORGANIZER, UserRole.ADMIN),
   validateSchema(eventIdParamsSchema, "params"),
-  validateSchema(createTicketTypeBodySchema, "body"),
+  validateSchema(createTicketTypesBodySchema, "body"),
   createTicketTypeController,
 );
 
