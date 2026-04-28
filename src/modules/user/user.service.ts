@@ -26,7 +26,7 @@ export const getUserService = async (id: string) => {
 
 export const uploadUserAvatarService = async (
   id: string,
-  avatarUrl: Express.Multer.File
+  avatarUrl: Express.Multer.File,
 ) => {
   let isUploaded = false;
   let publicId: string = "";
@@ -39,7 +39,7 @@ export const uploadUserAvatarService = async (
     const { public_id, secure_url } = await uploadToCloudinary(
       avatarUrl,
       user.id,
-      "AVATAR"
+      "AVATAR",
     );
 
     isUploaded = true;
