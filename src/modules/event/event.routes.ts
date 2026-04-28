@@ -7,6 +7,7 @@ import {
   createEventBodySchema,
   createTicketTypesBodySchema,
   eventIdParamsSchema,
+  eventSlugParamsSchema,
   getEventsQuerySchema,
   organizerEventParamsSchema,
   updateEventBodySchema,
@@ -15,6 +16,8 @@ import {
   createEventController,
   createTicketTypeController,
   deleteEventController,
+  getEventByIdController,
+  getEventBySlugController,
   getEventsController,
   updateEventController,
 } from "./event.controller.js";
@@ -26,6 +29,18 @@ router.get(
   "/",
   validateSchema(getEventsQuerySchema, "query"),
   getEventsController,
+);
+
+router.get(
+  "/slug/:slug",
+  validateSchema(eventSlugParamsSchema, "params"),
+  getEventBySlugController,
+);
+
+router.get(
+  "/:id",
+  validateSchema(eventIdParamsSchema, "params"),
+  getEventByIdController,
 );
 
 router.post(

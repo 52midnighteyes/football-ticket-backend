@@ -47,6 +47,8 @@ Role guard yang aktif saat ini:
 - `PATCH /api/users/avatar`
 - `GET /api/users/referral/:referralCode`
 - `GET /api/event`
+- `GET /api/event/:id`
+- `GET /api/event/slug/:slug`
 - `POST /api/event/organizer/:id`
 - `POST /api/event/:id/ticket-types`
 - `PUT /api/event/:id`
@@ -549,16 +551,13 @@ Response sukses:
 Kegunaan:
 
 - ambil list event
-- bisa juga dipakai filter event tertentu
-- detail event by `id` atau `slug` juga pakai endpoint ini
+- bisa juga dipakai filter list event tertentu
 
 Expected input:
 
 - params: none
 - body: none
 - query possible:
-  - `id` UUID
-  - `slug` string
   - `organizerId` UUID
   - `locationId` UUID
   - `categoryId` UUID
@@ -576,8 +575,6 @@ Contoh:
 
 ```txt
 GET /api/event
-GET /api/event?id=<event_uuid>
-GET /api/event?slug=derby-night-1234
 GET /api/event?organizerId=<organizer_uuid>
 GET /api/event?locationId=<city_uuid>&categoryId=<category_uuid>
 GET /api/event?status=PUBLISHED
@@ -629,6 +626,120 @@ Response sukses:
     "limit": 10,
     "total": 1,
     "totalPages": 1
+  }
+}
+```
+
+### `GET /api/event/:id`
+
+Kegunaan:
+
+- ambil detail satu event berdasarkan `id`
+
+Expected input:
+
+- params:
+  - `id` UUID event id
+- query: none
+- body: none
+
+Auth:
+
+- tidak perlu
+
+Response sukses:
+
+```json
+{
+  "message": "Event fetched successfully",
+  "data": {
+    "id": "EVENT_UUID",
+    "organizerId": "ORGANIZER_UUID",
+    "categoryId": "CATEGORY_UUID",
+    "cityId": "CITY_UUID",
+    "name": "Derby Night",
+    "slug": "derby-night-1234",
+    "description": "Big match for weekend crowd",
+    "bannerUrl": "https://res.cloudinary.com/.../banner.jpg",
+    "venue": "Main Stadium",
+    "address": "Jl. Stadion No. 10",
+    "startAt": "2026-05-10T19:00:00.000Z",
+    "endAt": "2026-05-10T22:00:00.000Z",
+    "status": "DRAFT",
+    "ticketTypes": [
+      {
+        "id": "TICKET_TYPE_UUID_1",
+        "eventId": "EVENT_UUID",
+        "name": "VIP",
+        "price": 250000,
+        "quota": 100,
+        "isActive": true,
+        "isSoldOut": false,
+        "isDeleted": false,
+        "createdAt": "2026-04-28T08:00:00.000Z",
+        "updatedAt": "2026-04-28T08:00:00.000Z"
+      }
+    ],
+    "createdAt": "2026-04-28T08:00:00.000Z",
+    "updatedAt": "2026-04-28T08:00:00.000Z",
+    "deletedAt": null
+  }
+}
+```
+
+### `GET /api/event/slug/:slug`
+
+Kegunaan:
+
+- ambil detail satu event berdasarkan `slug`
+
+Expected input:
+
+- params:
+  - `slug` string
+- query: none
+- body: none
+
+Auth:
+
+- tidak perlu
+
+Response sukses:
+
+```json
+{
+  "message": "Event fetched successfully",
+  "data": {
+    "id": "EVENT_UUID",
+    "organizerId": "ORGANIZER_UUID",
+    "categoryId": "CATEGORY_UUID",
+    "cityId": "CITY_UUID",
+    "name": "Derby Night",
+    "slug": "derby-night-1234",
+    "description": "Big match for weekend crowd",
+    "bannerUrl": "https://res.cloudinary.com/.../banner.jpg",
+    "venue": "Main Stadium",
+    "address": "Jl. Stadion No. 10",
+    "startAt": "2026-05-10T19:00:00.000Z",
+    "endAt": "2026-05-10T22:00:00.000Z",
+    "status": "DRAFT",
+    "ticketTypes": [
+      {
+        "id": "TICKET_TYPE_UUID_1",
+        "eventId": "EVENT_UUID",
+        "name": "VIP",
+        "price": 250000,
+        "quota": 100,
+        "isActive": true,
+        "isSoldOut": false,
+        "isDeleted": false,
+        "createdAt": "2026-04-28T08:00:00.000Z",
+        "updatedAt": "2026-04-28T08:00:00.000Z"
+      }
+    ],
+    "createdAt": "2026-04-28T08:00:00.000Z",
+    "updatedAt": "2026-04-28T08:00:00.000Z",
+    "deletedAt": null
   }
 }
 ```

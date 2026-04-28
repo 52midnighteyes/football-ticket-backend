@@ -59,6 +59,21 @@ export const findEventById = async (id: string, db: TPrisma = prisma) => {
   });
 };
 
+export const findEventBySlug = async (
+  slug: string,
+  db: TPrisma = prisma,
+) => {
+  return db.event.findFirst({
+    where: {
+      slug,
+      deletedAt: null,
+    },
+    include: {
+      ticketTypes: true,
+    },
+  });
+};
+
 export const updateEvent = async (
   id: string,
   data: Prisma.EventUpdateInput,

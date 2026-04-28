@@ -82,6 +82,10 @@ export const eventIdParamsSchema = zod.object({
   id: zod.uuid("Event ID must be a valid UUID"),
 });
 
+export const eventSlugParamsSchema = zod.object({
+  slug: zod.string().trim().min(1, "Event slug is required"),
+});
+
 export const getEventsQuerySchema = zod.object({
   id: zod.uuid("Event ID must be a valid UUID").optional(),
   slug: zod.string().trim().min(1, "Event slug is required").optional(),
@@ -107,6 +111,7 @@ export type TOrganizerEventParams = zod.infer<
   typeof organizerEventParamsSchema
 >;
 export type TEventIdParams = zod.infer<typeof eventIdParamsSchema>;
+export type TEventSlugParams = zod.infer<typeof eventSlugParamsSchema>;
 export type TGetEventsQuery = zod.infer<typeof getEventsQuerySchema>;
 export type TCreateEventBody = zod.infer<typeof createEventBodySchema>;
 export type TUpdateEventBody = zod.infer<typeof updateEventBodySchema>;

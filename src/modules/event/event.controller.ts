@@ -4,6 +4,7 @@ import {
   TCreateEventBody,
   TCreateTicketTypesBody,
   TEventIdParams,
+  TEventSlugParams,
   TGetEventsQuery,
   TOrganizerEventParams,
   TUpdateEventBody,
@@ -12,6 +13,8 @@ import {
   createEventService,
   createTicketTypesService,
   deleteOwnedEventService,
+  getEventByIdService,
+  getEventBySlugService,
   getEventsService,
   updateEventService,
 } from "./event.service.js";
@@ -55,6 +58,42 @@ export const getEventsController = async (
       message: "Events fetched successfully",
       data: result.data,
       meta: result.meta,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getEventByIdController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { id } = req.validated?.params as TEventIdParams;
+    const data = await getEventByIdService(id);
+
+    res.status(200).json({
+      message: "Event fetched successfully",
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getEventBySlugController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { slug } = req.validated?.params as TEventSlugParams;
+    const data = await getEventBySlugService(slug);
+
+    res.status(200).json({
+      message: "Event fetched successfully",
+      data,
     });
   } catch (error) {
     next(error);

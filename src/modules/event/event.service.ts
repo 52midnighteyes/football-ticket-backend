@@ -14,6 +14,7 @@ import {
   createTicketType,
   deleteEvent,
   findEventById,
+  findEventBySlug,
   findManyEvents,
   updateEvent,
   updateTicketType,
@@ -134,6 +135,20 @@ export const getEventsService = async (query: TGetEventsQuery) => {
       totalPages: Math.ceil(total / limit),
     },
   };
+};
+
+export const getEventByIdService = async (id: string) => {
+  const event = await findEventById(id);
+  if (!event) throw new AppError(404, "Event not found");
+
+  return event;
+};
+
+export const getEventBySlugService = async (slug: string) => {
+  const event = await findEventBySlug(slug);
+  if (!event) throw new AppError(404, "Event not found");
+
+  return event;
 };
 
 export const updateEventService = async (
