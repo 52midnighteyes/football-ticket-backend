@@ -12,6 +12,7 @@ import UserRouter from "./modules/user/user.routes.js";
 import EventRouter from "./modules/event/event.routes.js";
 import CategoryRouter from "./modules/category/category.routes.js";
 import LocationRouter from "./modules/location/location.routes.js";
+import TransactionRouter from "./modules/transaction/transaction.routes.js";
 
 const app = express();
 
@@ -57,6 +58,7 @@ app.use("/api/users", UserRouter);
 app.use("/api/event", EventRouter);
 app.use("/api/locations", LocationRouter);
 app.use("/api/categories", CategoryRouter);
+app.use("/api/transactions", TransactionRouter);
 
 //route not found handler
 app.use((_req, _res, next) => {

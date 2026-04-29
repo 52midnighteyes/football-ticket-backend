@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Your purchase has been processed</title>
+  </head>
+  <body style="margin: 0; padding: 0; background-color: #f5f7fb; font-family: Arial, sans-serif; color: #1f2937;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f5f7fb; padding: 24px 0;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 640px; background-color: #ffffff; border-radius: 16px; overflow: hidden;">
+            <tr>
+              <td style="background-color: #0f172a; padding: 32px; color: #ffffff;">
+                <h1 style="margin: 0; font-size: 28px;">MATCHPASS</h1>
+                <p style="margin: 12px 0 0; font-size: 16px;">Your purchase has been processed</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding: 32px;">
+                <p style="margin: 0 0 16px;">Hi {{firstName}},</p>
+                <p style="margin: 0 0 16px;">
+                  Your transaction for <strong>{{eventName}}</strong> has been created successfully.
+                </p>
+                {{#if paymentRequired}}
+                <p style="margin: 0 0 16px;">
+                  Please complete your payment before
+                  <strong>{{expiredAtFormatted}}</strong>. You can check your ongoing transaction from your profile page.
+                </p>
+                {{else}}
+                <p style="margin: 0 0 16px;">
+                  Your transaction has been fully covered by discounts and points, so no payment is required.
+                </p>
+                {{/if}}
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse: collapse; margin: 24px 0;">
+                  <tr>
+                    <td style="padding: 12px; border: 1px solid #e5e7eb;">Transaction ID</td>
+                    <td style="padding: 12px; border: 1px solid #e5e7eb;">{{transactionId}}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px; border: 1px solid #e5e7eb;">Event</td>
+                    <td style="padding: 12px; border: 1px solid #e5e7eb;">{{eventName}}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px; border: 1px solid #e5e7eb;">Venue</td>
+                    <td style="padding: 12px; border: 1px solid #e5e7eb;">{{venue}}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px; border: 1px solid #e5e7eb;">Start at</td>
+                    <td style="padding: 12px; border: 1px solid #e5e7eb;">{{startAtFormatted}}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px; border: 1px solid #e5e7eb;">Total amount</td>
+                    <td style="padding: 12px; border: 1px solid #e5e7eb;">Rp {{totalAmount}}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px; border: 1px solid #e5e7eb;">Voucher amount</td>
+                    <td style="padding: 12px; border: 1px solid #e5e7eb;">Rp {{voucherAmount}}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px; border: 1px solid #e5e7eb;">Coupon amount</td>
+                    <td style="padding: 12px; border: 1px solid #e5e7eb;">Rp {{couponAmount}}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px; border: 1px solid #e5e7eb;">Points amount</td>
+                    <td style="padding: 12px; border: 1px solid #e5e7eb;">Rp {{pointsAmount}}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px; border: 1px solid #e5e7eb;"><strong>Final amount</strong></td>
+                    <td style="padding: 12px; border: 1px solid #e5e7eb;"><strong>Rp {{finalAmount}}</strong></td>
+                  </tr>
+                </table>
+                <a
+                  href="{{profileUrl}}"
+                  style="display: inline-block; background-color: #0f172a; color: #ffffff; text-decoration: none; padding: 14px 24px; border-radius: 10px;"
+                >
+                  Open profile
+                </a>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

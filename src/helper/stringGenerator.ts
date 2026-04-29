@@ -37,3 +37,14 @@ export function generateReferralCode(name: string, length: number): string {
 
   return prefix + code;
 }
+
+export function generateCouponCode(length: number = 8): string {
+  const COUPON_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ1234567890";
+  let code = "CP";
+
+  for (let i = 0; i < length; i++) {
+    code += COUPON_ALPHABET[randomInt(0, COUPON_ALPHABET.length)];
+  }
+
+  return code;
+}
