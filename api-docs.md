@@ -57,6 +57,11 @@ Role guard yang aktif saat ini:
 - `GET /api/locations/provinces`
 - `GET /api/locations/cities`
 - `GET /api/categories`
+- `POST /api/transactions`
+- `GET /api/transactions/me`
+- `GET /api/transactions/vouchers/check`
+- `GET /api/transactions/coupons/me`
+- `GET /api/transactions/points/me`
 
 ## Health
 
@@ -1397,6 +1402,258 @@ Response sukses:
 }
 ```
 
+## Transaction Endpoints
+
+### Ringkasan Flow Transaksi
+
+- satu transaksi hanya untuk satu `ticketTypeId` dengan quantity tetap `1`
+- satu user tidak bisa punya transaksi aktif atau transaksi selesai untuk event yang sama
+- transaksi bisa pakai `voucher`, `coupon`, dan `point` secara bersamaan
+- `voucher` pakai kode, `coupon` pakai `couponId`
+- `voucher` wajib cocok dengan `eventId` transaksi
+- `point` dipakai dengan rasio `1 point = 1 rupiah`
+- `coupon` dipakai dengan rasio `1 amount = 1 rupiah`
+- `voucher` dipakai dengan rasio `1 amount = 1 rupiah`
+- saat transaksi dibuat, quota `ticketType` langsung dikurangi
+- kalau quota sesudah transaksi jadi `0`, `isSoldOut` akan jadi `true`
+- transaksi pending expired setelah `2 jam`
+- saat transaksi expired, quota ticket, quota voucher, coupon, dan point yang kepakai akan dibalikin otomatis saat endpoint transaksi dipanggil lagi
+- setelah transaksi sukses dibuat, user akan dapat email untuk cek ongoing transaction di profile
+
+### `POST /api/transactions`
+
+Kegunaan:
+
+- buat transaksi baru untuk user login
+
+Expected input:
+
+- params: none
+- query: none
+- body:
+  - `eventId` UUID
+  - `ticketTypeId` UUID
+  - `voucherCode` string optional
+  - `couponId` UUID optional
+  - `usePoints` boolean optional, default `false`
+
+Catatan:
+
+- quantity ticket selalu `1`
+- user tidak bisa transaksi ulang untuk event yang sama kalau masih punya transaksi `WAITING_FOR_PAYMENT`, `WAITING_FOR_ADMIN_CONFIRMATION`, atau `DONE`
+- kalau `usePoints = true`, backend akan otomatis memakai semua point available sampai batas maksimal yang bisa mengurangi tagihan
+- kalau total diskon dan point menutupi semua harga tiket, transaksi akan langsung `DONE`
+- kalau masih ada sisa bayar, transaksi akan `WAITING_FOR_PAYMENT` dan punya `expiredAt` 2 jam dari waktu create
+
+Auth:
+
+- bearer token wajib
+
+Contoh body:
+
+```json
+{
+  "eventId": "EVENT_UUID",
+  "ticketTypeId": "TICKET_TYPE_UUID",
+  "voucherCode": "EARLYBIRD10",
+  "couponId": "COUPON_UUID",
+  "usePoints": true
+}
+```
+
+Response sukses:
+
+```json
+{
+  "message": "Transaction created successfully",
+  "data": {
+    "id": "TRANSACTION_UUID",
+    "userId": "USER_UUID",
+    "eventId": "EVENT_UUID",
+    "couponId": "COUPON_UUID",
+    "voucherId": "VOUCHER_UUID",
+    "status": "WAITING_FOR_PAYMENT",
+    "totalAmount": 100000,
+    "couponAmount": 10000,
+    "voucherAmount": 20000,
+    "pointsAmount": 15000,
+    "finalAmount": 55000,
+    "expiredAt": "2026-04-29T12:00:00.000Z",
+    "transactionItems": [
+      {
+        "id": "TRANSACTION_ITEM_UUID",
+        "ticketTypeId": "TICKET_TYPE_UUID",
+        "quantity": 1,
+        "price": 100000,
+        "subtotal": 100000
+      }
+    ]
+  }
+}
+```
+
+### `GET /api/transactions/me`
+
+Kegunaan:
+
+- ambil list transaksi milik user login
+
+Expected input:
+
+- params: none
+- body: none
+- query possible:
+  - `status` enum: `WAITING_FOR_PAYMENT` | `WAITING_FOR_ADMIN_CONFIRMATION` | `DONE` | `REJECTED` | `EXPIRED` | `CANCELED`
+
+Catatan:
+
+- semua query opsional
+- sebelum data diambil, sistem akan sinkronkan transaksi expired dulu
+
+Auth:
+
+- bearer token wajib
+
+Contoh:
+
+```txt
+GET /api/transactions/me
+GET /api/transactions/me?status=WAITING_FOR_PAYMENT
+```
+
+### `GET /api/transactions/vouchers/check`
+
+Kegunaan:
+
+- cek voucher valid atau tidak untuk event tertentu
+- cocok buat debounce di frontend sebelum submit transaksi
+
+Expected input:
+
+- params: none
+- body: none
+- query:
+  - `eventId` UUID
+  - `code` string
+
+Catatan:
+
+- voucher harus cocok dengan `eventId`
+- voucher harus masih dalam window `startAt` dan `endAt`
+- voucher harus masih punya quota
+
+Auth:
+
+- bearer token wajib
+
+Contoh:
+
+```txt
+GET /api/transactions/vouchers/check?eventId=<event_uuid>&code=EARLYBIRD10
+```
+
+Response sukses:
+
+```json
+{
+  "message": "Voucher is valid",
+  "data": {
+    "id": "VOUCHER_UUID",
+    "eventId": "EVENT_UUID",
+    "code": "EARLYBIRD10",
+    "amount": 20000,
+    "quota": 10,
+    "startAt": "2026-04-20T00:00:00.000Z",
+    "endAt": "2026-05-01T00:00:00.000Z"
+  }
+}
+```
+
+### `GET /api/transactions/coupons/me`
+
+Kegunaan:
+
+- ambil coupon milik user login yang masih available
+- cocok buat dropdown atau selector coupon di frontend
+
+Expected input:
+
+- params: none
+- query: none
+- body: none
+
+Catatan:
+
+- hanya return coupon yang belum dipakai dan belum expired
+- endpoint ini dipakai frontend buat menampilkan pilihan coupon yang nanti dikirim sebagai `couponId`
+
+Auth:
+
+- bearer token wajib
+
+Contoh:
+
+```txt
+GET /api/transactions/coupons/me
+```
+
+Response sukses:
+
+```json
+{
+  "message": "Coupons fetched successfully",
+  "data": [
+    {
+      "id": "COUPON_UUID",
+      "userId": "USER_UUID",
+      "amount": 10000,
+      "source": "REFERRAL_REGISTER",
+      "usedAt": null,
+      "expiresAt": "2026-05-20T00:00:00.000Z"
+    }
+  ]
+}
+```
+
+### `GET /api/transactions/points/me`
+
+Kegunaan:
+
+- ambil total point available milik user login
+- cocok buat toggle "use all points" di frontend
+
+Expected input:
+
+- params: none
+- query: none
+- body: none
+
+Catatan:
+
+- hanya menghitung point yang masih punya `pointLeft > 0`
+- hanya menghitung point yang belum expired
+
+Auth:
+
+- bearer token wajib
+
+Contoh:
+
+```txt
+GET /api/transactions/points/me
+```
+
+Response sukses:
+
+```json
+{
+  "message": "Available points fetched successfully",
+  "data": {
+    "totalAvailablePoints": 20000
+  }
+}
+```
+
 ## Error Umum
 
 Format error umum:
@@ -1428,6 +1685,17 @@ Message yang sering muncul:
 6. `PUT /api/event/:id` untuk update event.
 7. `DELETE /api/event/:id` untuk soft delete event.
 
+## Testing Flow Cepat Buat Transaksi
+
+1. `POST /api/auth/login` sebagai customer.
+2. `GET /api/event?status=PUBLISHED` untuk ambil `eventId`.
+3. `GET /api/event/:id` untuk lihat `ticketTypeId` yang mau dibeli.
+4. Optional: `GET /api/transactions/vouchers/check` untuk cek voucher event.
+5. Optional: `GET /api/transactions/coupons/me` untuk pilih coupon.
+6. Optional: `GET /api/transactions/points/me` untuk tahu total point available.
+7. `POST /api/transactions` untuk create transaksi.
+8. `GET /api/transactions/me?status=WAITING_FOR_PAYMENT` untuk lihat ongoing transaction di profile.
+
 ## File Terkait
 
 - `src/app.ts`
@@ -1436,3 +1704,4 @@ Message yang sering muncul:
 - `src/modules/event/*`
 - `src/modules/location/*`
 - `src/modules/category/*`
+- `src/modules/transaction/*`
