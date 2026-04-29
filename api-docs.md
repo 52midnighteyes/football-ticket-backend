@@ -53,7 +53,9 @@ Role guard yang aktif saat ini:
 - `POST /api/event/:id/ticket-types`
 - `PUT /api/event/:id`
 - `DELETE /api/event/:id`
-- `GET /api/cities`
+- `GET /api/locations/countries`
+- `GET /api/locations/provinces`
+- `GET /api/locations/cities`
 - `GET /api/categories`
 
 ## Health
@@ -1111,9 +1113,145 @@ Response sukses:
 }
 ```
 
-## City Endpoints
+## Location Endpoints
 
-### `GET /api/cities`
+### `GET /api/locations/countries`
+
+Kegunaan:
+
+- ambil list country beserta provinces dan cities
+
+Expected input:
+
+- params: none
+- body: none
+- query possible:
+  - `id` UUID
+  - `code` string
+  - `name` string
+
+Catatan:
+
+- semua query opsional
+- `name` pakai contains case-insensitive
+- `code` pakai equals case-insensitive
+- response include `provinces` dan nested `cities`
+
+Contoh:
+
+```txt
+GET /api/locations/countries
+GET /api/locations/countries?id=<country_uuid>
+GET /api/locations/countries?name=england
+GET /api/locations/countries?code=ENG
+```
+
+Auth:
+
+- tidak perlu
+
+Response sukses:
+
+```json
+{
+  "message": "Countries fetched successfully",
+  "data": [
+    {
+      "id": "COUNTRY_UUID",
+      "name": "England",
+      "code": "ENG",
+      "createdAt": "2026-04-07T00:00:00.000Z",
+      "updatedAt": "2026-04-07T00:00:00.000Z",
+      "provinces": [
+        {
+          "id": "PROVINCE_UUID",
+          "countryId": "COUNTRY_UUID",
+          "name": "Greater London",
+          "code": "LDN",
+          "createdAt": "2026-04-07T00:00:00.000Z",
+          "updatedAt": "2026-04-07T00:00:00.000Z",
+          "cities": [
+            {
+              "id": "CITY_UUID",
+              "provinceId": "PROVINCE_UUID",
+              "name": "London",
+              "code": "LON",
+              "createdAt": "2026-04-07T00:00:00.000Z",
+              "updatedAt": "2026-04-07T00:00:00.000Z"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+### `GET /api/locations/provinces`
+
+Kegunaan:
+
+- ambil list province beserta cities
+
+Expected input:
+
+- params: none
+- body: none
+- query possible:
+  - `id` UUID
+  - `countryId` UUID
+  - `code` string
+  - `name` string
+
+Catatan:
+
+- semua query opsional
+- `name` pakai contains case-insensitive
+- `code` pakai equals case-insensitive
+- response include `cities`
+
+Contoh:
+
+```txt
+GET /api/locations/provinces
+GET /api/locations/provinces?countryId=<country_uuid>
+GET /api/locations/provinces?name=london
+GET /api/locations/provinces?code=LDN
+```
+
+Auth:
+
+- tidak perlu
+
+Response sukses:
+
+```json
+{
+  "message": "Provinces fetched successfully",
+  "data": [
+    {
+      "id": "PROVINCE_UUID",
+      "countryId": "COUNTRY_UUID",
+      "name": "Greater London",
+      "code": "LDN",
+      "createdAt": "2026-04-07T00:00:00.000Z",
+      "updatedAt": "2026-04-07T00:00:00.000Z",
+      "cities": [
+        {
+          "id": "CITY_UUID",
+          "provinceId": "PROVINCE_UUID",
+          "name": "London",
+          "code": "LON",
+          "createdAt": "2026-04-07T00:00:00.000Z",
+          "updatedAt": "2026-04-07T00:00:00.000Z"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### `GET /api/locations/cities`
 
 Kegunaan:
 
@@ -1138,10 +1276,10 @@ Catatan:
 Contoh:
 
 ```txt
-GET /api/cities
-GET /api/cities?provinceId=<province_uuid>
-GET /api/cities?name=jakarta
-GET /api/cities?code=JKT
+GET /api/locations/cities
+GET /api/locations/cities?provinceId=<province_uuid>
+GET /api/locations/cities?name=jakarta
+GET /api/locations/cities?code=JKT
 ```
 
 Auth:
@@ -1241,7 +1379,7 @@ Message yang sering muncul:
 
 1. `POST /api/auth/login` sebagai organizer.
 2. `GET /api/categories` untuk ambil category id.
-3. `GET /api/cities` untuk ambil city id.
+3. `GET /api/locations/cities` untuk ambil city id.
 4. `POST /api/event/organizer/:id` untuk create event.
 5. `GET /api/event?organizerId=<organizer_id>` untuk cek event organizer.
 6. `PUT /api/event/:id` untuk update event.
@@ -1253,5 +1391,5 @@ Message yang sering muncul:
 - `src/modules/auth/*`
 - `src/modules/user/*`
 - `src/modules/event/*`
-- `src/modules/city/*`
+- `src/modules/location/*`
 - `src/modules/category/*`

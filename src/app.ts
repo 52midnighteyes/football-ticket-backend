@@ -10,8 +10,8 @@ import { errorHandler } from "./middlewares/errorHandler.middleware.js";
 import AuthRouter from "./modules/auth/auth.route.js";
 import UserRouter from "./modules/user/user.routes.js";
 import EventRouter from "./modules/event/event.routes.js";
-import CityRouter from "./modules/city/city.routes.js";
 import CategoryRouter from "./modules/category/category.routes.js";
+import LocationRouter from "./modules/location/location.routes.js";
 
 const app = express();
 
@@ -55,7 +55,7 @@ app.get("/", (_req: Request, res: Response) => {
 app.use("/api/auth", AuthRouter);
 app.use("/api/users", UserRouter);
 app.use("/api/event", EventRouter);
-app.use("/api/cities", CityRouter);
+app.use("/api/locations", LocationRouter);
 app.use("/api/categories", CategoryRouter);
 
 //route not found handler
