@@ -25,6 +25,24 @@ import type {
   TUpdateEventBody,
 } from "./event.schemas.js";
 
+const buildStringFilter = (exact?: string, like?: string) => {
+  if (!exact && !like) return undefined;
+
+  return {
+    ...(exact
+      ? {
+          equals: exact,
+        }
+      : {}),
+    ...(like
+      ? {
+          contains: like,
+        }
+      : {}),
+    mode: "insensitive" as const,
+  };
+};
+
 const deleteBannerByUrl = async (bannerUrl: string) => {
   const publicId = getPublicIdFromCloudinaryUrl(bannerUrl);
   if (!publicId) return;
@@ -104,9 +122,21 @@ export const createEventService = async (
 };
 
 export const getEventsService = async (query: TGetEventsQuery) => {
+  const slugFilter = buildStringFilter(query.slug, query.slugLike);
+  const nameFilter = buildStringFilter(undefined, query.nameLike);
+  const descriptionFilter = buildStringFilter(undefined, query.descriptionLike);
+  const venueFilter = buildStringFilter(undefined, query.venueLike);
+  const addressFilter = buildStringFilter(undefined, query.addressLike);
+  const sortBy = query.sortBy ?? "createdAt";
+  const sortOrder = query.sortOrder ?? "desc";
+
   const where: Prisma.EventWhereInput = {
     ...(query.id ? { id: query.id } : {}),
-    ...(query.slug ? { slug: query.slug } : {}),
+    ...(slugFilter ? { slug: slugFilter } : {}),
+    ...(nameFilter ? { name: nameFilter } : {}),
+    ...(descriptionFilter ? { description: descriptionFilter } : {}),
+    ...(venueFilter ? { venue: venueFilter } : {}),
+    ...(addressFilter ? { address: addressFilter } : {}),
     ...(query.organizerId ? { organizerId: query.organizerId } : {}),
     ...(query.locationId ? { cityId: query.locationId } : {}),
     ...(query.categoryId ? { categoryId: query.categoryId } : {}),
@@ -118,7 +148,13 @@ export const getEventsService = async (query: TGetEventsQuery) => {
   const skip = (page - 1) * limit;
 
   const [events, total] = await Promise.all([
-    findManyEvents(where, { skip, take: limit }),
+    findManyEvents(where, {
+      skip,
+      take: limit,
+      orderBy: {
+        [sortBy]: sortOrder,
+      },
+    }),
     countEvents(where),
   ]);
 

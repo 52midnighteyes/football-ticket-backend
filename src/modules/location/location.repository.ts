@@ -4,6 +4,7 @@ import type { TPrisma } from "../../libs/prisma/prisma.types.js";
 
 export const findManyCountries = async (
   where: Prisma.CountryWhereInput = {},
+  orderBy: Prisma.CountryOrderByWithRelationInput = { name: "asc" },
   db: TPrisma = prisma,
 ) => {
   return db.country.findMany({
@@ -18,12 +19,13 @@ export const findManyCountries = async (
         orderBy: [{ name: "asc" }],
       },
     },
-    orderBy: [{ name: "asc" }],
+    orderBy,
   });
 };
 
 export const findManyProvinces = async (
   where: Prisma.ProvinceWhereInput = {},
+  orderBy: Prisma.ProvinceOrderByWithRelationInput = { name: "asc" },
   db: TPrisma = prisma,
 ) => {
   return db.province.findMany({
@@ -33,16 +35,17 @@ export const findManyProvinces = async (
         orderBy: [{ name: "asc" }],
       },
     },
-    orderBy: [{ name: "asc" }],
+    orderBy,
   });
 };
 
 export const findManyCities = async (
   where: Prisma.CityWhereInput = {},
+  orderBy: Prisma.CityOrderByWithRelationInput = { name: "asc" },
   db: TPrisma = prisma,
 ) => {
   return db.city.findMany({
     where,
-    orderBy: [{ name: "asc" }],
+    orderBy,
   });
 };

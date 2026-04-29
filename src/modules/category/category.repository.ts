@@ -4,6 +4,7 @@ import type { TPrisma } from "../../libs/prisma/prisma.types.js";
 
 export const findManyCategories = async (
   where: Prisma.CategoryWhereInput = {},
+  orderBy: Prisma.CategoryOrderByWithRelationInput = { name: "asc" },
   db: TPrisma = prisma,
 ) => {
   return db.category.findMany({
@@ -11,6 +12,6 @@ export const findManyCategories = async (
       deletedAt: null,
       ...where,
     },
-    orderBy: [{ name: "asc" }],
+    orderBy,
   });
 };
