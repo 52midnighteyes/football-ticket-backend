@@ -1,16 +1,37 @@
 import * as zod from "zod";
 import { TransactionStatus } from "../../../generated/prisma/enums.js";
 
+const emptyStringToUndefined = (value: unknown) => {
+  if (typeof value !== "string") return value;
+
+  const trimmed = value.trim();
+  return trimmed === "" ? undefined : trimmed;
+};
+
+const booleanLikeSchema = zod.preprocess((value) => {
+  if (value === undefined) return false;
+  if (typeof value !== "string") return value;
+
+  const normalized = value.trim().toLowerCase();
+
+  if (normalized === "true") return true;
+  if (normalized === "false") return false;
+
+  return value;
+}, zod.boolean());
+
 export const createTransactionBodySchema = zod.object({
   eventId: zod.uuid("Event ID must be a valid UUID"),
   ticketTypeId: zod.uuid("Ticket type ID must be a valid UUID"),
-  voucherCode: zod.string().trim().min(1).optional(),
-  couponCode: zod.string().trim().min(1).optional(),
-  pointsToUse: zod.coerce
-    .number("Points to use must be a valid number")
-    .int("Points to use must be an integer")
-    .min(0, "Points to use must be at least 0")
-    .default(0),
+  voucherCode: zod.preprocess(
+    emptyStringToUndefined,
+    zod.string().trim().min(1).optional(),
+  ),
+  couponId: zod.preprocess(
+    emptyStringToUndefined,
+    zod.uuid("Coupon ID must be a valid UUID").optional(),
+  ),
+  usePoints: booleanLikeSchema,
 });
 
 export const getMyTransactionsQuerySchema = zod.object({
@@ -22,10 +43,6 @@ export const checkVoucherQuerySchema = zod.object({
   code: zod.string().trim().min(1, "Voucher code is required"),
 });
 
-export const checkCouponQuerySchema = zod.object({
-  code: zod.string().trim().min(1, "Coupon code is required"),
-});
-
 export type TCreateTransactionBody = zod.infer<
   typeof createTransactionBodySchema
 >;
@@ -33,4 +50,3 @@ export type TGetMyTransactionsQuery = zod.infer<
   typeof getMyTransactionsQuerySchema
 >;
 export type TCheckVoucherQuery = zod.infer<typeof checkVoucherQuerySchema>;
-export type TCheckCouponQuery = zod.infer<typeof checkCouponQuerySchema>;

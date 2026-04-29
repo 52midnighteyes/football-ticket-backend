@@ -1,15 +1,14 @@
 import type { NextFunction, Request, Response } from "express";
 import { AppError } from "../../class/appError.js";
 import type {
-  TCheckCouponQuery,
   TCheckVoucherQuery,
   TCreateTransactionBody,
   TGetMyTransactionsQuery,
 } from "./transaction.schemas.js";
 import {
-  checkCouponService,
   checkVoucherService,
   createTransactionService,
+  getMyAvailablePointsService,
   getMyCouponsService,
   getMyTransactionsService,
 } from "./transaction.service.js";
@@ -74,27 +73,6 @@ export const checkVoucherController = async (
   }
 };
 
-export const checkCouponController = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
-  try {
-    const actor = req.user;
-    if (!actor) throw new AppError(401, "Unauthorized");
-
-    const query = req.validated?.query as TCheckCouponQuery;
-    const data = await checkCouponService(actor.id, query);
-
-    res.status(200).json({
-      message: "Coupon is valid",
-      data,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
 export const getMyCouponsController = async (
   req: Request,
   res: Response,
@@ -108,6 +86,26 @@ export const getMyCouponsController = async (
 
     res.status(200).json({
       message: "Coupons fetched successfully",
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getMyAvailablePointsController = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const actor = req.user;
+    if (!actor) throw new AppError(401, "Unauthorized");
+
+    const data = await getMyAvailablePointsService(actor.id);
+
+    res.status(200).json({
+      message: "Available points fetched successfully",
       data,
     });
   } catch (error) {

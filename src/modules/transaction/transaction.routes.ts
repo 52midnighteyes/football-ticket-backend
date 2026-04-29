@@ -2,14 +2,13 @@ import { Router } from "express";
 import { verifyAccessToken } from "../../middlewares/tokenVerification/tokenVerification.middleware.js";
 import { validateSchema } from "../../middlewares/zodValidator.middleware.js";
 import {
-  checkCouponController,
   checkVoucherController,
   createTransactionController,
+  getMyAvailablePointsController,
   getMyCouponsController,
   getMyTransactionsController,
 } from "./transaction.controller.js";
 import {
-  checkCouponQuerySchema,
   checkVoucherQuerySchema,
   createTransactionBodySchema,
   getMyTransactionsQuerySchema,
@@ -38,13 +37,8 @@ router.get(
   checkVoucherController,
 );
 
-router.get(
-  "/coupons/check",
-  verifyAccessToken,
-  validateSchema(checkCouponQuerySchema, "query"),
-  checkCouponController,
-);
-
 router.get("/coupons/me", verifyAccessToken, getMyCouponsController);
+
+router.get("/points/me", verifyAccessToken, getMyAvailablePointsController);
 
 export default router;

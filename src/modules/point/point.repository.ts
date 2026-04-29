@@ -22,3 +22,58 @@ export const createPointHistory = async (
     data,
   });
 };
+
+export const findAvailablePointsByUser = async (
+  userId: string,
+  now: Date,
+  db: TPrisma = prisma,
+) => {
+  return db.point.findMany({
+    where: {
+      userId,
+      pointLeft: {
+        gt: 0,
+      },
+      pointHistories: {
+        some: {
+          type: "EARNED",
+          expiresAt: {
+            gte: now,
+          },
+        },
+      },
+    },
+    include: {
+      pointHistories: {
+        where: {
+          type: "EARNED",
+        },
+        orderBy: [{ createdAt: "asc" }],
+      },
+    },
+    orderBy: [{ createdAt: "asc" }],
+  });
+};
+
+export const reservePointAmount = async (
+  pointId: string,
+  amount: number,
+  db: TPrisma = prisma,
+) => {
+  return db.point.updateMany({
+    where: {
+      id: pointId,
+      pointLeft: {
+        gte: amount,
+      },
+    },
+    data: {
+      pointLeft: {
+        decrement: amount,
+      },
+      pointUsed: {
+        increment: amount,
+      },
+    },
+  });
+};

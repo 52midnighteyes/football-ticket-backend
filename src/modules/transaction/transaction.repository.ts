@@ -44,103 +44,6 @@ export const findUserTransactionByEvent = async (
   });
 };
 
-export const findAvailableVoucherByCode = async (
-  eventId: string,
-  code: string,
-  now: Date,
-  db: TPrisma = prisma,
-) => {
-  return db.voucher.findFirst({
-    where: {
-      eventId,
-      code: {
-        equals: code,
-        mode: "insensitive",
-      },
-      deletedAt: null,
-      quota: {
-        gt: 0,
-      },
-      startAt: {
-        lte: now,
-      },
-      endAt: {
-        gte: now,
-      },
-    },
-  });
-};
-
-export const findAvailableCouponByCode = async (
-  userId: string,
-  code: string,
-  now: Date,
-  db: TPrisma = prisma,
-) => {
-  return db.coupon.findFirst({
-    where: {
-      userId,
-      code: {
-        equals: code,
-        mode: "insensitive",
-      },
-      usedAt: null,
-      expiresAt: {
-        gte: now,
-      },
-    },
-  });
-};
-
-export const findAvailableCouponsByUser = async (
-  userId: string,
-  now: Date,
-  db: TPrisma = prisma,
-) => {
-  return db.coupon.findMany({
-    where: {
-      userId,
-      usedAt: null,
-      expiresAt: {
-        gte: now,
-      },
-    },
-    orderBy: [{ expiresAt: "asc" }, { createdAt: "asc" }],
-  });
-};
-
-export const findAvailablePointsByUser = async (
-  userId: string,
-  now: Date,
-  db: TPrisma = prisma,
-) => {
-  return db.point.findMany({
-    where: {
-      userId,
-      pointLeft: {
-        gt: 0,
-      },
-      pointHistories: {
-        some: {
-          type: "EARNED",
-          expiresAt: {
-            gte: now,
-          },
-        },
-      },
-    },
-    include: {
-      pointHistories: {
-        where: {
-          type: "EARNED",
-        },
-        orderBy: [{ createdAt: "asc" }],
-      },
-    },
-    orderBy: [{ createdAt: "asc" }],
-  });
-};
-
 export const findExpiredPendingTransactions = async (
   now: Date,
   db: TPrisma = prisma,
@@ -166,6 +69,72 @@ export const findExpiredPendingTransactions = async (
   });
 };
 
+export const reserveTicketType = async (
+  ticketTypeId: string,
+  eventId: string,
+  db: TPrisma = prisma,
+) => {
+  return db.ticketType.updateMany({
+    where: {
+      id: ticketTypeId,
+      eventId,
+      isActive: true,
+      isDeleted: false,
+      quota: {
+        gte: 1,
+      },
+    },
+    data: {
+      quota: {
+        decrement: 1,
+      },
+    },
+  });
+};
+
+export const releaseTicketType = async (
+  ticketTypeId: string,
+  quantity: number,
+  db: TPrisma = prisma,
+) => {
+  return db.ticketType.update({
+    where: {
+      id: ticketTypeId,
+    },
+    data: {
+      quota: {
+        increment: quantity,
+      },
+      isSoldOut: false,
+    },
+  });
+};
+
+export const findTicketTypeById = async (
+  ticketTypeId: string,
+  db: TPrisma = prisma,
+) => {
+  return db.ticketType.findUnique({
+    where: {
+      id: ticketTypeId,
+    },
+  });
+};
+
+export const markTicketTypeSoldOut = async (
+  ticketTypeId: string,
+  db: TPrisma = prisma,
+) => {
+  return db.ticketType.update({
+    where: {
+      id: ticketTypeId,
+    },
+    data: {
+      isSoldOut: true,
+    },
+  });
+};
+
 export const createTransactionWithItem = async (
   data: Prisma.TransactionUncheckedCreateInput & {
     transactionItems: Prisma.TransactionItemUncheckedCreateNestedManyWithoutTransactionInput;
@@ -183,6 +152,25 @@ export const createTransactionWithItem = async (
           ticketType: true,
         },
       },
+    },
+  });
+};
+
+export const claimExpiredTransactionById = async (
+  transactionId: string,
+  now: Date,
+  db: TPrisma = prisma,
+) => {
+  return db.transaction.updateMany({
+    where: {
+      id: transactionId,
+      status: "WAITING_FOR_PAYMENT",
+      expiredAt: {
+        lt: now,
+      },
+    },
+    data: {
+      status: "EXPIRED",
     },
   });
 };

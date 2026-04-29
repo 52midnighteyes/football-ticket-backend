@@ -60,8 +60,8 @@ Role guard yang aktif saat ini:
 - `POST /api/transactions`
 - `GET /api/transactions/me`
 - `GET /api/transactions/vouchers/check`
-- `GET /api/transactions/coupons/check`
 - `GET /api/transactions/coupons/me`
+- `GET /api/transactions/points/me`
 
 ## Health
 
@@ -1409,7 +1409,7 @@ Response sukses:
 - satu transaksi hanya untuk satu `ticketTypeId` dengan quantity tetap `1`
 - satu user tidak bisa punya transaksi aktif atau transaksi selesai untuk event yang sama
 - transaksi bisa pakai `voucher`, `coupon`, dan `point` secara bersamaan
-- `voucher` dan `coupon` masing-masing hanya satu kode per transaksi
+- `voucher` pakai kode, `coupon` pakai `couponId`
 - `voucher` wajib cocok dengan `eventId` transaksi
 - `point` dipakai dengan rasio `1 point = 1 rupiah`
 - `coupon` dipakai dengan rasio `1 amount = 1 rupiah`
@@ -1434,13 +1434,14 @@ Expected input:
   - `eventId` UUID
   - `ticketTypeId` UUID
   - `voucherCode` string optional
-  - `couponCode` string optional
-  - `pointsToUse` integer optional, minimum `0`
+  - `couponId` UUID optional
+  - `usePoints` boolean optional, default `false`
 
 Catatan:
 
 - quantity ticket selalu `1`
 - user tidak bisa transaksi ulang untuk event yang sama kalau masih punya transaksi `WAITING_FOR_PAYMENT`, `WAITING_FOR_ADMIN_CONFIRMATION`, atau `DONE`
+- kalau `usePoints = true`, backend akan otomatis memakai semua point available sampai batas maksimal yang bisa mengurangi tagihan
 - kalau total diskon dan point menutupi semua harga tiket, transaksi akan langsung `DONE`
 - kalau masih ada sisa bayar, transaksi akan `WAITING_FOR_PAYMENT` dan punya `expiredAt` 2 jam dari waktu create
 
@@ -1455,8 +1456,8 @@ Contoh body:
   "eventId": "EVENT_UUID",
   "ticketTypeId": "TICKET_TYPE_UUID",
   "voucherCode": "EARLYBIRD10",
-  "couponCode": "CPAB12CD34",
-  "pointsToUse": 15000
+  "couponId": "COUPON_UUID",
+  "usePoints": true
 }
 ```
 
@@ -1568,51 +1569,6 @@ Response sukses:
 }
 ```
 
-### `GET /api/transactions/coupons/check`
-
-Kegunaan:
-
-- cek coupon milik user login valid atau tidak
-
-Expected input:
-
-- params: none
-- body: none
-- query:
-  - `code` string
-
-Catatan:
-
-- coupon harus milik user login
-- coupon harus belum dipakai
-- coupon harus belum expired
-
-Auth:
-
-- bearer token wajib
-
-Contoh:
-
-```txt
-GET /api/transactions/coupons/check?code=CPAB12CD34
-```
-
-Response sukses:
-
-```json
-{
-  "message": "Coupon is valid",
-  "data": {
-    "id": "COUPON_UUID",
-    "userId": "USER_UUID",
-    "code": "CPAB12CD34",
-    "amount": 10000,
-    "source": "REFERRAL_REGISTER",
-    "expiresAt": "2026-05-20T00:00:00.000Z"
-  }
-}
-```
-
 ### `GET /api/transactions/coupons/me`
 
 Kegunaan:
@@ -1629,7 +1585,7 @@ Expected input:
 Catatan:
 
 - hanya return coupon yang belum dipakai dan belum expired
-- coupon lama yang belum punya code akan diisi code otomatis saat endpoint ini dipanggil
+- endpoint ini dipakai frontend buat menampilkan pilihan coupon yang nanti dikirim sebagai `couponId`
 
 Auth:
 
@@ -1650,13 +1606,51 @@ Response sukses:
     {
       "id": "COUPON_UUID",
       "userId": "USER_UUID",
-      "code": "CPAB12CD34",
       "amount": 10000,
       "source": "REFERRAL_REGISTER",
       "usedAt": null,
       "expiresAt": "2026-05-20T00:00:00.000Z"
     }
   ]
+}
+```
+
+### `GET /api/transactions/points/me`
+
+Kegunaan:
+
+- ambil total point available milik user login
+- cocok buat toggle "use all points" di frontend
+
+Expected input:
+
+- params: none
+- query: none
+- body: none
+
+Catatan:
+
+- hanya menghitung point yang masih punya `pointLeft > 0`
+- hanya menghitung point yang belum expired
+
+Auth:
+
+- bearer token wajib
+
+Contoh:
+
+```txt
+GET /api/transactions/points/me
+```
+
+Response sukses:
+
+```json
+{
+  "message": "Available points fetched successfully",
+  "data": {
+    "totalAvailablePoints": 20000
+  }
 }
 ```
 
@@ -1697,9 +1691,10 @@ Message yang sering muncul:
 2. `GET /api/event?status=PUBLISHED` untuk ambil `eventId`.
 3. `GET /api/event/:id` untuk lihat `ticketTypeId` yang mau dibeli.
 4. Optional: `GET /api/transactions/vouchers/check` untuk cek voucher event.
-5. Optional: `GET /api/transactions/coupons/me` atau `GET /api/transactions/coupons/check` untuk pilih coupon.
-6. `POST /api/transactions` untuk create transaksi.
-7. `GET /api/transactions/me?status=WAITING_FOR_PAYMENT` untuk lihat ongoing transaction di profile.
+5. Optional: `GET /api/transactions/coupons/me` untuk pilih coupon.
+6. Optional: `GET /api/transactions/points/me` untuk tahu total point available.
+7. `POST /api/transactions` untuk create transaksi.
+8. `GET /api/transactions/me?status=WAITING_FOR_PAYMENT` untuk lihat ongoing transaction di profile.
 
 ## File Terkait
 

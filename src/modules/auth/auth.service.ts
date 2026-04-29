@@ -16,7 +16,6 @@ import {
   toUserPayload,
   verifyJwtToken,
 } from "./auth.helper.js";
-import { generateCouponCode } from "../../helper/stringGenerator.js";
 import {
   createRefreshToken,
   createResetToken,
@@ -253,7 +252,6 @@ export const verifyUserService = async (token: string) => {
 
         const couponPayload: CouponUncheckedCreateInput = {
           userId: user.id,
-          code: generateCouponCode(),
           source: "REFERRAL_REGISTER",
           amount: 10000,
           expiresAt: new Date(Date.now() + THIRTY_DAYS_IN_MS),
