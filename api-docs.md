@@ -560,10 +560,19 @@ Expected input:
 - params: none
 - body: none
 - query possible:
+  - `id` UUID
+  - `slug` string exact match
+  - `slugLike` string contains search
+  - `nameLike` string contains search
+  - `descriptionLike` string contains search
+  - `venueLike` string contains search
+  - `addressLike` string contains search
   - `organizerId` UUID
   - `locationId` UUID
   - `categoryId` UUID
   - `status` enum: `DRAFT` | `PUBLISHED` | `CANCELED` | `COMPLETED`
+  - `sortBy` enum: `name` | `slug` | `venue` | `address` | `startAt` | `endAt` | `createdAt` | `updatedAt`
+  - `sortOrder` enum: `asc` | `desc`
   - `page` number, default `1`
   - `limit` number, default `10`, max `100`
 
@@ -572,6 +581,8 @@ Catatan:
 - `locationId` saat ini dipetakan ke field `cityId`
 - semua query opsional
 - query bisa digabung
+- semua field `...Like` pakai contains case-insensitive
+- default sorting: `createdAt desc`
 
 Contoh:
 
@@ -580,6 +591,8 @@ GET /api/event
 GET /api/event?organizerId=<organizer_uuid>
 GET /api/event?locationId=<city_uuid>&categoryId=<category_uuid>
 GET /api/event?status=PUBLISHED
+GET /api/event?nameLike=derby
+GET /api/event?venueLike=stadium&sortBy=startAt&sortOrder=asc
 GET /api/event?page=2&limit=10
 ```
 
@@ -1129,12 +1142,18 @@ Expected input:
   - `id` UUID
   - `code` string
   - `name` string
+  - `codeLike` string contains search
+  - `nameLike` string contains search
+  - `sortBy` enum: `name` | `code` | `createdAt` | `updatedAt`
+  - `sortOrder` enum: `asc` | `desc`
 
 Catatan:
 
 - semua query opsional
-- `name` pakai contains case-insensitive
+- `name` dan `nameLike` pakai contains case-insensitive
 - `code` pakai equals case-insensitive
+- `codeLike` pakai contains case-insensitive
+- default sorting: `name asc`
 - response include `provinces` dan nested `cities`
 
 Contoh:
@@ -1144,6 +1163,8 @@ GET /api/locations/countries
 GET /api/locations/countries?id=<country_uuid>
 GET /api/locations/countries?name=england
 GET /api/locations/countries?code=ENG
+GET /api/locations/countries?nameLike=land
+GET /api/locations/countries?codeLike=EN&sortBy=code&sortOrder=desc
 ```
 
 Auth:
@@ -1202,12 +1223,18 @@ Expected input:
   - `countryId` UUID
   - `code` string
   - `name` string
+  - `codeLike` string contains search
+  - `nameLike` string contains search
+  - `sortBy` enum: `name` | `code` | `createdAt` | `updatedAt`
+  - `sortOrder` enum: `asc` | `desc`
 
 Catatan:
 
 - semua query opsional
-- `name` pakai contains case-insensitive
+- `name` dan `nameLike` pakai contains case-insensitive
 - `code` pakai equals case-insensitive
+- `codeLike` pakai contains case-insensitive
+- default sorting: `name asc`
 - response include `cities`
 
 Contoh:
@@ -1217,6 +1244,8 @@ GET /api/locations/provinces
 GET /api/locations/provinces?countryId=<country_uuid>
 GET /api/locations/provinces?name=london
 GET /api/locations/provinces?code=LDN
+GET /api/locations/provinces?nameLike=london
+GET /api/locations/provinces?sortBy=createdAt&sortOrder=desc
 ```
 
 Auth:
@@ -1266,12 +1295,18 @@ Expected input:
   - `provinceId` UUID
   - `code` string
   - `name` string
+  - `codeLike` string contains search
+  - `nameLike` string contains search
+  - `sortBy` enum: `name` | `code` | `createdAt` | `updatedAt`
+  - `sortOrder` enum: `asc` | `desc`
 
 Catatan:
 
 - semua query opsional
-- `name` pakai contains case-insensitive
+- `name` dan `nameLike` pakai contains case-insensitive
 - `code` pakai equals case-insensitive
+- `codeLike` pakai contains case-insensitive
+- default sorting: `name asc`
 
 Contoh:
 
@@ -1280,6 +1315,8 @@ GET /api/locations/cities
 GET /api/locations/cities?provinceId=<province_uuid>
 GET /api/locations/cities?name=jakarta
 GET /api/locations/cities?code=JKT
+GET /api/locations/cities?nameLike=kar
+GET /api/locations/cities?sortBy=code&sortOrder=desc
 ```
 
 Auth:
@@ -1319,11 +1356,15 @@ Expected input:
 - query possible:
   - `id` UUID
   - `name` string
+  - `nameLike` string contains search
+  - `sortBy` enum: `name` | `createdAt` | `updatedAt`
+  - `sortOrder` enum: `asc` | `desc`
 
 Catatan:
 
 - semua query opsional
-- `name` pakai contains case-insensitive
+- `name` dan `nameLike` pakai contains case-insensitive
+- default sorting: `name asc`
 
 Contoh:
 
@@ -1331,6 +1372,8 @@ Contoh:
 GET /api/categories
 GET /api/categories?id=<category_uuid>
 GET /api/categories?name=football
+GET /api/categories?nameLike=league
+GET /api/categories?sortBy=updatedAt&sortOrder=desc
 ```
 
 Auth:

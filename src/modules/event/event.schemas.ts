@@ -1,6 +1,18 @@
 import * as zod from "zod";
 import { EventStatus } from "../../../generated/prisma/enums.js";
 
+const sortOrderSchema = zod.enum(["asc", "desc"]);
+const eventSortBySchema = zod.enum([
+  "name",
+  "slug",
+  "venue",
+  "address",
+  "startAt",
+  "endAt",
+  "createdAt",
+  "updatedAt",
+]);
+
 const parseJsonField = (value: unknown) => {
   if (typeof value !== "string") return value;
 
@@ -89,10 +101,25 @@ export const eventSlugParamsSchema = zod.object({
 export const getEventsQuerySchema = zod.object({
   id: zod.uuid("Event ID must be a valid UUID").optional(),
   slug: zod.string().trim().min(1, "Event slug is required").optional(),
+  slugLike: zod.string().trim().min(1, "Event slugLike is required").optional(),
+  nameLike: zod.string().trim().min(1, "Event nameLike is required").optional(),
+  descriptionLike: zod
+    .string()
+    .trim()
+    .min(1, "Event descriptionLike is required")
+    .optional(),
+  venueLike: zod.string().trim().min(1, "Event venueLike is required").optional(),
+  addressLike: zod
+    .string()
+    .trim()
+    .min(1, "Event addressLike is required")
+    .optional(),
   organizerId: zod.uuid("Organizer ID must be a valid UUID").optional(),
   locationId: zod.uuid("Location ID must be a valid UUID").optional(),
   categoryId: zod.uuid("Category ID must be a valid UUID").optional(),
   status: zod.enum(EventStatus).optional(),
+  sortBy: eventSortBySchema.optional(),
+  sortOrder: sortOrderSchema.optional(),
   page: zod.coerce.number().int().min(1).default(1),
   limit: zod.coerce.number().int().min(1).max(100).default(10),
 });

@@ -16,7 +16,11 @@ export const createEvent = async (
 
 export const findManyEvents = async (
   where: Prisma.EventWhereInput = {},
-  options: { skip?: number; take?: number } = {},
+  options: {
+    skip?: number;
+    take?: number;
+    orderBy?: Prisma.EventOrderByWithRelationInput;
+  } = {},
   db: TPrisma = prisma,
 ) => {
   return db.event.findMany({
@@ -24,7 +28,7 @@ export const findManyEvents = async (
       deletedAt: null,
       ...where,
     },
-    orderBy: {
+    orderBy: options.orderBy ?? {
       createdAt: "desc",
     },
     include: {
