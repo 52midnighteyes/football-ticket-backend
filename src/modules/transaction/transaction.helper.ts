@@ -121,10 +121,8 @@ export const buildPointAllocations = async (
   const availablePoints = await findAvailablePointsByUser(userId, now);
 
   const sortedPoints = [...availablePoints].sort((a, b) => {
-    const aExpiresAt =
-      a.pointHistories[0]?.expiresAt?.getTime() ?? Number.MAX_SAFE_INTEGER;
-    const bExpiresAt =
-      b.pointHistories[0]?.expiresAt?.getTime() ?? Number.MAX_SAFE_INTEGER;
+    const aExpiresAt = a.expiresAt.getTime();
+    const bExpiresAt = b.expiresAt.getTime();
 
     if (aExpiresAt !== bExpiresAt) {
       return aExpiresAt - bExpiresAt;
@@ -256,11 +254,12 @@ export const reserveTransactionResources = async (params: {
     const reservePoint = await reservePointAmount(
       allocation.pointId,
       allocation.amount,
+      params.usedAt,
       params.tx,
     );
 
     if (reservePoint.count === 0) {
-      throw new AppError(409, "Insufficient points");
+      throw new AppError(409, "Point is no longer available");
     }
   }
 };
@@ -288,6 +287,7 @@ export const createUsedPointHistories = async (params: {
 export const restoreTransactionResources = async (params: {
   tx: TPrisma;
   transaction: RestorableTransaction;
+  now: Date;
 }) => {
   for (const item of params.transaction.transactionItems) {
     await releaseTicketType(item.ticketTypeId, item.quantity, params.tx);
@@ -302,9 +302,12 @@ export const restoreTransactionResources = async (params: {
   }
 
   for (const pointHistory of params.transaction.pointHistories) {
-    await params.tx.point.update({
+    const restorePoint = await params.tx.point.updateMany({
       where: {
         id: pointHistory.pointId,
+        expiresAt: {
+          gte: params.now,
+        },
       },
       data: {
         pointLeft: {
@@ -316,14 +319,40 @@ export const restoreTransactionResources = async (params: {
       },
     });
 
+    if (restorePoint.count > 0) {
+      await createPointHistory(
+        {
+          pointId: pointHistory.pointId,
+          userId: pointHistory.userId,
+          transactionId: params.transaction.id,
+          amount: pointHistory.amount,
+          type: "REFUNDED",
+          source: "TRANSACTION_REFUND",
+        },
+        params.tx,
+      );
+
+      continue;
+    }
+
+    const point = await params.tx.point.findUnique({
+      where: {
+        id: pointHistory.pointId,
+      },
+      select: {
+        expiresAt: true,
+      },
+    });
+
     await createPointHistory(
       {
         pointId: pointHistory.pointId,
         userId: pointHistory.userId,
         transactionId: params.transaction.id,
         amount: pointHistory.amount,
-        type: "REFUNDED",
-        source: "TRANSACTION_REFUND",
+        type: "EXPIRED",
+        source: "SYSTEM_EXPIRE",
+        expiresAt: point?.expiresAt ?? params.now,
       },
       params.tx,
     );
@@ -386,6 +415,7 @@ export const syncExpiredTransactions = async (): Promise<void> => {
         await restoreTransactionResources({
           tx,
           transaction,
+          now,
         });
       }
     },

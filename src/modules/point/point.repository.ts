@@ -34,30 +34,18 @@ export const findAvailablePointsByUser = async (
       pointLeft: {
         gt: 0,
       },
-      pointHistories: {
-        some: {
-          type: "EARNED",
-          expiresAt: {
-            gte: now,
-          },
-        },
+      expiresAt: {
+        gte: now,
       },
     },
-    include: {
-      pointHistories: {
-        where: {
-          type: "EARNED",
-        },
-        orderBy: [{ createdAt: "asc" }],
-      },
-    },
-    orderBy: [{ createdAt: "asc" }],
+    orderBy: [{ expiresAt: "asc" }, { createdAt: "asc" }],
   });
 };
 
 export const reservePointAmount = async (
   pointId: string,
   amount: number,
+  now: Date,
   db: TPrisma = prisma,
 ) => {
   return db.point.updateMany({
@@ -65,6 +53,9 @@ export const reservePointAmount = async (
       id: pointId,
       pointLeft: {
         gte: amount,
+      },
+      expiresAt: {
+        gte: now,
       },
     },
     data: {

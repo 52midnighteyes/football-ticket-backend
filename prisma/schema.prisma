@@ -107,6 +107,7 @@ model Point {
   pointEarned Int @map("point_earned")
   pointUsed   Int @default(0) @map("point_used")
   pointLeft   Int @default(0) @map("point_left")
+  expiresAt   DateTime @map("expires_at")
   user        User @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId      String @map("user_id")
   createdAt   DateTime @default(now()) @map("created_at")

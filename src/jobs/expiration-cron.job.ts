@@ -1,17 +1,14 @@
+import cron from "node-cron";
+import {
+  CRON_TIMEZONE,
+  RUN_EXPIRATION_SWEEP_ON_STARTUP,
+} from "../config/config.js";
 import { prisma } from "../libs/prisma/prisma.lib.js";
 import { syncExpiredTransactions } from "../modules/transaction/transaction.helper.js";
 
-const ONE_DAY_IN_MS = 24 * 60 * 60 * 1000;
-
-let expirationCronTimeout: NodeJS.Timeout | null = null;
+let expirationCronTask: ReturnType<typeof cron.schedule> | null = null;
 let expirationCronStarted = false;
-
-const getNextMidnight = (now: Date) => {
-  const nextMidnight = new Date(now);
-  nextMidnight.setHours(24, 0, 0, 0);
-
-  return nextMidnight;
-};
+let expirationSweepRunning = false;
 
 const expirePointsAndCoupons = async (now: Date) => {
   const [expiredPoints, expiredCoupons] = await Promise.all([
@@ -20,25 +17,15 @@ const expirePointsAndCoupons = async (now: Date) => {
         pointLeft: {
           gt: 0,
         },
-        pointHistories: {
-          some: {
-            type: "EARNED",
-            expiresAt: {
-              lt: now,
-            },
-          },
+        expiresAt: {
+          lt: now,
         },
       },
-      include: {
-        pointHistories: {
-          where: {
-            type: "EARNED",
-            expiresAt: {
-              lt: now,
-            },
-          },
-          orderBy: [{ expiresAt: "asc" }, { createdAt: "asc" }],
-        },
+      select: {
+        id: true,
+        userId: true,
+        pointLeft: true,
+        expiresAt: true,
       },
     }),
     prisma.coupon.findMany({
@@ -69,13 +56,15 @@ const expirePointsAndCoupons = async (now: Date) => {
         if (point.pointLeft <= 0) continue;
 
         const expiredAmount = point.pointLeft;
-        const earnedHistory = point.pointHistories[0];
 
         const expirePoint = await tx.point.updateMany({
           where: {
             id: point.id,
             pointLeft: {
               gt: 0,
+            },
+            expiresAt: {
+              lt: now,
             },
           },
           data: {
@@ -97,7 +86,7 @@ const expirePointsAndCoupons = async (now: Date) => {
             amount: expiredAmount,
             type: "EXPIRED",
             source: "SYSTEM_EXPIRE",
-            expiresAt: earnedHistory?.expiresAt ?? now,
+            expiresAt: point.expiresAt,
           },
         });
 
@@ -136,35 +125,25 @@ const expirePointsAndCoupons = async (now: Date) => {
 };
 
 export const runExpirationSweep = async (now: Date = new Date()) => {
+  if (expirationSweepRunning) {
+    console.log("[cron] expiration sweep skipped because another run is active");
+    return;
+  }
+
+  expirationSweepRunning = true;
+
   await syncExpiredTransactions();
-  const pointAndCouponSummary = await expirePointsAndCoupons(now);
+  try {
+    const pointAndCouponSummary = await expirePointsAndCoupons(now);
 
-  console.log("[cron] expiration sweep completed", {
-    ranAt: now.toISOString(),
-    ...pointAndCouponSummary,
-  });
-};
-
-const scheduleNextExpirationSweep = () => {
-  const now = new Date();
-  const nextMidnight = getNextMidnight(now);
-  const delay = Math.max(0, nextMidnight.getTime() - now.getTime());
-
-  expirationCronTimeout = setTimeout(async () => {
-    try {
-      await runExpirationSweep(new Date());
-    } catch (error) {
-      console.error("[cron] expiration sweep failed", error);
-    } finally {
-      scheduleNextExpirationSweep();
-    }
-  }, delay);
-
-  console.log("[cron] next expiration sweep scheduled", {
-    nextRunAt: nextMidnight.toISOString(),
-    delayInMs: delay,
-    repeatEveryMs: ONE_DAY_IN_MS,
-  });
+    console.log("[cron] expiration sweep completed", {
+      ranAt: now.toISOString(),
+      timezone: CRON_TIMEZONE,
+      ...pointAndCouponSummary,
+    });
+  } finally {
+    expirationSweepRunning = false;
+  }
 };
 
 export const startExpirationCron = () => {
@@ -174,18 +153,40 @@ export const startExpirationCron = () => {
 
   expirationCronStarted = true;
 
-  void runExpirationSweep(new Date()).catch((error) => {
-    console.error("[cron] initial expiration sweep failed", error);
-  });
+  if (RUN_EXPIRATION_SWEEP_ON_STARTUP) {
+    void runExpirationSweep(new Date()).catch((error) => {
+      console.error("[cron] initial expiration sweep failed", error);
+    });
+  }
 
-  scheduleNextExpirationSweep();
+  expirationCronTask = cron.schedule(
+    "0 0 * * *",
+    async () => {
+      try {
+        await runExpirationSweep(new Date());
+      } catch (error) {
+        console.error("[cron] expiration sweep failed", error);
+      }
+    },
+    {
+      timezone: CRON_TIMEZONE,
+    },
+  );
+
+  console.log("[cron] expiration sweep scheduled", {
+    cron: "0 0 * * *",
+    timezone: CRON_TIMEZONE,
+    runOnStartup: RUN_EXPIRATION_SWEEP_ON_STARTUP,
+  });
 };
 
 export const stopExpirationCron = () => {
-  if (expirationCronTimeout) {
-    clearTimeout(expirationCronTimeout);
-    expirationCronTimeout = null;
+  if (expirationCronTask) {
+    expirationCronTask.stop();
+    expirationCronTask.destroy();
+    expirationCronTask = null;
   }
 
+  expirationSweepRunning = false;
   expirationCronStarted = false;
 };
