@@ -28,7 +28,7 @@ export const createSlug = (str: string): string => {
 
 export function generateReferralCode(name: string, length: number): string {
   const REFERRAL_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ1234567890";
-  const prefix = name.slice(0, 2);
+  const prefix = name.slice(0, 2).toUpperCase();
 
   let code = "";
   for (let i = 0; i < length; i++) {
@@ -36,4 +36,15 @@ export function generateReferralCode(name: string, length: number): string {
   }
 
   return prefix + code;
+}
+
+export function generateTicketCode(length: number = 10): string {
+  const TICKET_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ1234567890";
+  let code = "TKT";
+
+  for (let i = 0; i < length; i++) {
+    code += TICKET_ALPHABET[randomInt(0, TICKET_ALPHABET.length)];
+  }
+
+  return code;
 }

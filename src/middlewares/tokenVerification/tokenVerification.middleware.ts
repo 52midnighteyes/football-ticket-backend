@@ -1,7 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import Jwt from "jsonwebtoken";
 import { JWT_SECRET } from "../../config/config.js";
-import type { IUserParams } from "../../custom.js";
 import {
   jwtTokenSchema,
   type TJwtTokenPayload,
@@ -11,7 +10,7 @@ import { AppError } from "../../class/appError.js";
 export const verifyAccessToken = async (
   req: Request,
   _res: Response,
-  next: NextFunction,
+  next: NextFunction
 ) => {
   try {
     const authHeader = req.header("Authorization");
@@ -25,7 +24,7 @@ export const verifyAccessToken = async (
     }
 
     const verification: TJwtTokenPayload = jwtTokenSchema.parse(
-      Jwt.verify(token, JWT_SECRET),
+      Jwt.verify(token, JWT_SECRET)
     );
 
     req.user = verification;

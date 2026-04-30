@@ -9,6 +9,8 @@ export const jwtTokenSchema = z.object({
   role: z.enum(UserRole, {
     message: "user role from token is invalid",
   }),
+  avatarUrl: z.url({ error: "Avatar URL from token is invalid" }).nullable(),
+  isVerified: z.boolean({ error: "isVerified from token is invalid" }),
 });
 
 export type TJwtTokenPayload = z.infer<typeof jwtTokenSchema>;

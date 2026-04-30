@@ -1,10 +1,13 @@
-import { RefreshTokenUncheckedCreateInput } from "../../../generated/prisma/models.js";
+import {
+  PasswordResetTokenUncheckedCreateInput,
+  RefreshTokenUncheckedCreateInput,
+} from "../../../generated/prisma/models.js";
 import { prisma } from "../../libs/prisma/prisma.lib.js";
 import type { TPrisma } from "../../libs/prisma/prisma.types.js";
 
 export const findRefreshTokenByHashedToken = async (
   hashedToken: string,
-  db: TPrisma = prisma
+  db: TPrisma = prisma,
 ) => {
   return db.refreshToken.findFirst({
     where: {
@@ -12,6 +15,8 @@ export const findRefreshTokenByHashedToken = async (
       expiresAt: {
         gte: new Date(),
       },
+      usedAt: null,
+      revokedAt: null,
     },
     include: {
       user: true,
@@ -21,7 +26,7 @@ export const findRefreshTokenByHashedToken = async (
 
 export const updateManyRefreshTokenByHashedToken = async (
   hashedToken: string,
-  db: TPrisma = prisma
+  db: TPrisma = prisma,
 ) => {
   return db.refreshToken.updateMany({
     where: {
@@ -33,7 +38,7 @@ export const updateManyRefreshTokenByHashedToken = async (
 
 export const revokeManyRefreshTokenByHashedToken = async (
   hashedToken: string,
-  db: TPrisma = prisma
+  db: TPrisma = prisma,
 ) => {
   return db.refreshToken.updateMany({
     where: {
@@ -45,40 +50,48 @@ export const revokeManyRefreshTokenByHashedToken = async (
 
 export const createRefreshToken = async (
   data: RefreshTokenUncheckedCreateInput,
-  db: TPrisma = prisma
+  db: TPrisma = prisma,
 ) => {
   return await db.refreshToken.create({
     data,
   });
 };
 
-export const checkRefferalCode = async (
-  referralCode: string,
-  db: TPrisma = prisma
+export const createResetToken = async (
+  data: PasswordResetTokenUncheckedCreateInput,
+  db: TPrisma = prisma,
 ) => {
-  return await db.user.findUnique({
+  return await db.passwordResetToken.create({
+    data: data,
+  });
+};
+
+export const findResetToken = async (
+  tokenHash: string,
+  db: TPrisma = prisma,
+) => {
+  return await db.passwordResetToken.findFirst({
     where: {
-      referralCode,
+      tokenHash,
+      expiresAt: {
+        gte: new Date(),
+      },
+      usedAt: null,
     },
   });
 };
 
-export const findUserByReferralCode = async (
-  referralCode: string,
-  db: TPrisma = prisma
+export const updateManyUsedResetToken = async (
+  userId: string,
+  db: TPrisma = prisma,
 ) => {
-  return await db.user.findUnique({
-    where: { referralCode },
-  });
-};
-
-export const verifyUserById = async (id: string, db: TPrisma = prisma) => {
-  return await db.user.update({
+  return await db.passwordResetToken.updateMany({
     where: {
-      id,
+      userId,
+      usedAt: null,
     },
     data: {
-      isVerified: true,
+      usedAt: new Date(),
     },
   });
 };
