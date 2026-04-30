@@ -88,7 +88,10 @@ export const meService = async (id: string) => {
     const isExist = await findUserById(id);
     if (!isExist) throw new AppError(404, "User not found");
 
-    const user = toUserPayload(isExist);
+    const user = {
+      ...toUserPayload(isExist),
+      referralCode: isExist.referralCode,
+    };
 
     return user;
   } catch (error) {

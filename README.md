@@ -90,6 +90,7 @@ System guard yang sudah aktif:
 - centralized error handler
 - custom `AppError`
 - bearer token verification middleware
+- role guard untuk endpoint organizer/admin dan pembelian ticket customer-only
 - JSON parse error handling
 - Prisma error mapping
 - Multer error mapping

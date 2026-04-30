@@ -37,3 +37,14 @@ export function generateReferralCode(name: string, length: number): string {
 
   return prefix + code;
 }
+
+export function generateTicketCode(length: number = 10): string {
+  const TICKET_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ1234567890";
+  let code = "TKT";
+
+  for (let i = 0; i < length; i++) {
+    code += TICKET_ALPHABET[randomInt(0, TICKET_ALPHABET.length)];
+  }
+
+  return code;
+}

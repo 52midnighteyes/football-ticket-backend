@@ -1,8 +1,13 @@
 import type { TransactionStatus } from "../../../generated/prisma/enums.js";
 import { AppError } from "../../class/appError.js";
 import { FRONTEND_URL } from "../../config/config.js";
+import { generateTicketCode } from "../../helper/stringGenerator.js";
 import { compileHandlebars } from "../../helper/handlebars.js";
 import { EMAIL_TEMPLATES_DIR } from "../../helper/path.js";
+import {
+  deleteFromCloudinary,
+  getPublicIdFromCloudinaryUrl,
+} from "../../libs/cloudinary/cloudinary.lib.js";
 import { sendMail } from "../../libs/mailer/nodemailer.libs.js";
 import { prisma } from "../../libs/prisma/prisma.lib.js";
 import type { TPrisma } from "../../libs/prisma/prisma.types.js";
@@ -12,10 +17,11 @@ import {
   reserveCouponById,
 } from "../coupon/coupon.repository.js";
 import {
-  reservePointAmount,
   createPointHistory,
   findAvailablePointsByUser,
+  reservePointAmount,
 } from "../point/point.repository.js";
+import { createTicket } from "../ticket/ticket.repository.js";
 import {
   releaseVoucherById,
   reserveVoucherById,
@@ -30,11 +36,45 @@ import {
 } from "./transaction.repository.js";
 
 const TWO_HOURS_IN_MS = 2 * 60 * 60 * 1000;
+const THREE_HOURS_IN_MS = 3 * 60 * 60 * 1000;
+
+type RestorableTransaction = {
+  id: string;
+  voucherId: string | null;
+  couponId: string | null;
+  transactionItems: Array<{
+    ticketTypeId: string;
+    quantity: number;
+  }>;
+  pointHistories: Array<{
+    pointId: string;
+    userId: string;
+    amount: number;
+  }>;
+};
+
+type TicketIssuableTransaction = {
+  id: string;
+  userId: string;
+  transactionItems: Array<{
+    id: string;
+    quantity: number;
+  }>;
+};
 
 export type PointAllocation = {
   pointId: string;
   userId: string;
   amount: number;
+};
+
+const formatDateTime = (value: Date | null) => {
+  if (!value) return null;
+
+  return value.toLocaleString("id-ID", {
+    dateStyle: "full",
+    timeStyle: "short",
+  });
 };
 
 export const calculateTransactionAmounts = (params: {
@@ -129,6 +169,37 @@ export const getAvailablePointBalance = async (
   return points.reduce((sum, point) => sum + point.pointLeft, 0);
 };
 
+export const assertPaymentProofUploadable = (status: TransactionStatus) => {
+  if (status !== "WAITING_FOR_PAYMENT") {
+    throw new AppError(
+      409,
+      "Payment proof can only be uploaded while waiting for payment",
+    );
+  }
+};
+
+export const getAdminConfirmationExpiredAt = (now: Date) => {
+  return new Date(now.getTime() + THREE_HOURS_IN_MS);
+};
+
+export const assertTransactionReviewable = (status: TransactionStatus) => {
+  if (
+    status === "REJECTED" ||
+    status === "EXPIRED" ||
+    status === "CANCELED" ||
+    status === "DONE"
+  ) {
+    throw new AppError(409, "Transaction status can no longer be changed");
+  }
+
+  if (status !== "WAITING_FOR_ADMIN_CONFIRMATION") {
+    throw new AppError(
+      409,
+      "Transaction is still waiting for customer payment proof",
+    );
+  }
+};
+
 export const reserveTransactionResources = async (params: {
   tx: TPrisma;
   eventId: string;
@@ -148,7 +219,10 @@ export const reserveTransactionResources = async (params: {
     throw new AppError(409, "Ticket type is sold out");
   }
 
-  const reservedTicketType = await findTicketTypeById(params.ticketTypeId, params.tx);
+  const reservedTicketType = await findTicketTypeById(
+    params.ticketTypeId,
+    params.tx,
+  );
 
   if (
     reservedTicketType &&
@@ -211,6 +285,85 @@ export const createUsedPointHistories = async (params: {
   }
 };
 
+export const restoreTransactionResources = async (params: {
+  tx: TPrisma;
+  transaction: RestorableTransaction;
+}) => {
+  for (const item of params.transaction.transactionItems) {
+    await releaseTicketType(item.ticketTypeId, item.quantity, params.tx);
+  }
+
+  if (params.transaction.voucherId) {
+    await releaseVoucherById(params.transaction.voucherId, params.tx);
+  }
+
+  if (params.transaction.couponId) {
+    await releaseCouponById(params.transaction.couponId, params.tx);
+  }
+
+  for (const pointHistory of params.transaction.pointHistories) {
+    await params.tx.point.update({
+      where: {
+        id: pointHistory.pointId,
+      },
+      data: {
+        pointLeft: {
+          increment: pointHistory.amount,
+        },
+        pointUsed: {
+          decrement: pointHistory.amount,
+        },
+      },
+    });
+
+    await createPointHistory(
+      {
+        pointId: pointHistory.pointId,
+        userId: pointHistory.userId,
+        transactionId: params.transaction.id,
+        amount: pointHistory.amount,
+        type: "REFUNDED",
+        source: "TRANSACTION_REFUND",
+      },
+      params.tx,
+    );
+  }
+};
+
+export const createTicketsForTransaction = async (params: {
+  tx: TPrisma;
+  transaction: TicketIssuableTransaction;
+}) => {
+  const tickets = [];
+
+  for (const item of params.transaction.transactionItems) {
+    for (let index = 0; index < item.quantity; index += 1) {
+      const ticket = await createTicket(
+        {
+          transactionItemId: item.id,
+          transactionId: params.transaction.id,
+          userId: params.transaction.userId,
+          code: generateTicketCode(),
+        },
+        params.tx,
+      );
+
+      tickets.push(ticket);
+    }
+  }
+
+  return tickets;
+};
+
+export const deleteCloudinaryAssetByUrl = async (url?: string | null) => {
+  if (!url) return;
+
+  const publicId = getPublicIdFromCloudinaryUrl(url);
+  if (!publicId) return;
+
+  await deleteFromCloudinary(publicId);
+};
+
 export const syncExpiredTransactions = async (): Promise<void> => {
   const now = new Date();
   const expiredTransactions = await findExpiredPendingTransactions(now);
@@ -230,46 +383,10 @@ export const syncExpiredTransactions = async (): Promise<void> => {
           continue;
         }
 
-        for (const item of transaction.transactionItems) {
-          await releaseTicketType(item.ticketTypeId, item.quantity, tx);
-        }
-
-        if (transaction.voucherId) {
-          await releaseVoucherById(transaction.voucherId, tx);
-        }
-
-        if (transaction.couponId) {
-          await releaseCouponById(transaction.couponId, tx);
-        }
-
-        for (const pointHistory of transaction.pointHistories) {
-          await tx.point.update({
-            where: {
-              id: pointHistory.pointId,
-            },
-            data: {
-              pointLeft: {
-                increment: pointHistory.amount,
-              },
-              pointUsed: {
-                decrement: pointHistory.amount,
-              },
-            },
-          });
-
-          await createPointHistory(
-            {
-              pointId: pointHistory.pointId,
-              userId: pointHistory.userId,
-              transactionId: transaction.id,
-              amount: pointHistory.amount,
-              type: "REFUNDED",
-              source: "TRANSACTION_REFUND",
-            },
-            tx,
-          );
-        }
-
+        await restoreTransactionResources({
+          tx,
+          transaction,
+        });
       }
     },
     {
@@ -319,19 +436,64 @@ export const sendTransactionCreatedEmail = async (params: {
     "transaction-created.mail.hbs",
     {
       ...params,
-      startAtFormatted: params.startAt.toLocaleString("id-ID", {
-        dateStyle: "full",
-        timeStyle: "short",
-      }),
-      expiredAtFormatted: params.expiredAt
-        ? params.expiredAt.toLocaleString("id-ID", {
-            dateStyle: "full",
-            timeStyle: "short",
-          })
-        : null,
+      startAtFormatted: formatDateTime(params.startAt),
+      expiredAtFormatted: formatDateTime(params.expiredAt),
       profileUrl: `${FRONTEND_URL}/profile`,
     },
   );
 
   await sendMail(params.email, "Your purchase has been processed", html);
+};
+
+export const sendTransactionPaymentRejectedEmail = async (params: {
+  email: string;
+  firstName: string;
+  eventName: string;
+  venue: string;
+  startAt: Date;
+  totalAmount: number;
+  couponAmount: number;
+  voucherAmount: number;
+  pointsAmount: number;
+  finalAmount: number;
+}) => {
+  const html = await compileHandlebars(
+    EMAIL_TEMPLATES_DIR,
+    "transaction-payment-rejected.mail.hbs",
+    {
+      ...params,
+      startAtFormatted: formatDateTime(params.startAt),
+      profileUrl: `${FRONTEND_URL}/profile`,
+    },
+  );
+
+  await sendMail(params.email, "Your payment proof was rejected", html);
+};
+
+export const sendTransactionPaymentAcceptedEmail = async (params: {
+  email: string;
+  firstName: string;
+  eventName: string;
+  venue: string;
+  startAt: Date;
+  totalAmount: number;
+  couponAmount: number;
+  voucherAmount: number;
+  pointsAmount: number;
+  finalAmount: number;
+  tickets: Array<{
+    code: string;
+  }>;
+}) => {
+  const html = await compileHandlebars(
+    EMAIL_TEMPLATES_DIR,
+    "transaction-payment-accepted.mail.hbs",
+    {
+      ...params,
+      startAtFormatted: formatDateTime(params.startAt),
+      profileUrl: `${FRONTEND_URL}/profile`,
+    },
+  );
+
+  await sendMail(params.email, "Your payment has been accepted", html);
 };
