@@ -27,6 +27,26 @@ const getNumberEnv = (name: string, fallback: number): number => {
   return parsed;
 };
 
+const getBooleanEnv = (name: string, fallback: boolean): boolean => {
+  const value = process.env[name];
+
+  if (!value || value.trim() === "") {
+    return fallback;
+  }
+
+  const normalized = value.trim().toLowerCase();
+
+  if (["true", "1", "yes", "y", "on"].includes(normalized)) {
+    return true;
+  }
+
+  if (["false", "0", "no", "n", "off"].includes(normalized)) {
+    return false;
+  }
+
+  throw new Error(`Invalid boolean env: ${name}`);
+};
+
 export const PORT = getNumberEnv("PORT", 8080);
 export const JWT_SECRET = getRequiredEnv("JWT_SECRET");
 export const NODE_ENV = process.env.NODE_ENV || "development";
@@ -41,3 +61,8 @@ export const CLOUDINARY_API_SECRET = getRequiredEnv("CLOUDINARY_API_SECRET");
 export const VERIFY_TOKEN_SECRET = getRequiredEnv("VERIFY_TOKEN_SECRET");
 export const RESET_TOKEN_SECRET = getRequiredEnv("RESET_TOKEN_SECRET");
 export const PEPPER = getRequiredEnv("PEPPER");
+export const CRON_TIMEZONE = process.env.CRON_TIMEZONE || "Asia/Jakarta";
+export const RUN_EXPIRATION_SWEEP_ON_STARTUP = getBooleanEnv(
+  "RUN_EXPIRATION_SWEEP_ON_STARTUP",
+  false,
+);

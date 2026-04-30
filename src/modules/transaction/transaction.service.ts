@@ -396,6 +396,7 @@ export const reviewTransactionService = async (
         await restoreTransactionResources({
           tx,
           transaction,
+          now: new Date(),
         });
 
         const refreshedTransaction = await findTransactionByIdForReview(

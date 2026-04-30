@@ -205,6 +205,10 @@ export const updateEventService = async (
     }
 
     const { ticketTypes, ...eventPayload } = payload;
+    const nextSlug =
+      !eventPayload.name || eventPayload.name === existingEvent.name
+        ? existingEvent.slug
+        : createSlug(eventPayload.name);
     let nextBannerUrl = existingEvent.bannerUrl;
     if (file) {
       const { public_id, secure_url } = await uploadToCloudinary(
@@ -233,7 +237,7 @@ export const updateEventService = async (
             },
           },
           name: eventPayload.name,
-          slug: createSlug(eventPayload.name),
+          slug: nextSlug,
           description: eventPayload.description,
           bannerUrl: nextBannerUrl,
           venue: eventPayload.venue,
