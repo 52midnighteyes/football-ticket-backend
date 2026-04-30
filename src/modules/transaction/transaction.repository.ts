@@ -74,7 +74,9 @@ export const findExpiredPendingTransactions = async (
 ) => {
   return db.transaction.findMany({
     where: {
-      status: "WAITING_FOR_PAYMENT",
+      status: {
+        in: ["WAITING_FOR_PAYMENT", "WAITING_FOR_ADMIN_CONFIRMATION"],
+      },
       expiredAt: {
         lt: now,
       },
@@ -239,7 +241,9 @@ export const claimExpiredTransactionById = async (
   return db.transaction.updateMany({
     where: {
       id: transactionId,
-      status: "WAITING_FOR_PAYMENT",
+      status: {
+        in: ["WAITING_FOR_PAYMENT", "WAITING_FOR_ADMIN_CONFIRMATION"],
+      },
       expiredAt: {
         lt: now,
       },
