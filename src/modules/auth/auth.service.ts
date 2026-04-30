@@ -26,9 +26,9 @@ import {
   updateManyUsedResetToken,
 } from "./auth.repository.js";
 import {
+  addMonths,
   FOURTEEN_DAYS_IN_MS,
   ONE_MINUTE_IN_MS,
-  THIRTY_DAYS_IN_MS,
 } from "../../constant/time.constant.js";
 import { prisma } from "../../libs/prisma/prisma.lib.js";
 import {
@@ -231,10 +231,12 @@ export const verifyUserService = async (token: string) => {
         throw new AppError(409, "User is already verified");
 
       if (user.referrerUserId) {
+        const rewardEarnedAt = new Date();
         const referrerPointPayload: PointUncheckedCreateInput = {
           userId: user.referrerUserId,
           pointEarned: 10000,
           pointLeft: 10000,
+          expiresAt: addMonths(rewardEarnedAt, 3),
         };
 
         const point = await createPoint(referrerPointPayload, tx);
@@ -245,16 +247,17 @@ export const verifyUserService = async (token: string) => {
           amount: 10000,
           type: "EARNED",
           source: "REFERRAL_REWARD",
-          expiresAt: new Date(Date.now() + THIRTY_DAYS_IN_MS),
+          expiresAt: referrerPointPayload.expiresAt,
         };
 
         await createPointHistory(pointHistoryPayload, tx);
 
+        const couponEarnedAt = new Date();
         const couponPayload: CouponUncheckedCreateInput = {
           userId: user.id,
           source: "REFERRAL_REGISTER",
           amount: 10000,
-          expiresAt: new Date(Date.now() + THIRTY_DAYS_IN_MS),
+          expiresAt: addMonths(couponEarnedAt, 3),
         };
 
         await createCoupon(couponPayload, tx);
