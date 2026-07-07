@@ -1,9 +1,14 @@
-import express, { NextFunction, type Request, type Response } from "express";
+import express, {
+  NextFunction,
+  type Request,
+  type RequestHandler,
+  type Response,
+} from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 
 import { FRONTEND_URL } from "./config/config.js";
-import helmet from "helmet";
+import helmetImport, { type HelmetOptions } from "helmet";
 import { AppError } from "./class/appError.js";
 import { errorHandler } from "./middlewares/errorHandler.middleware.js";
 
@@ -14,6 +19,10 @@ import CategoryRouter from "./modules/category/category.routes.js";
 import LocationRouter from "./modules/location/location.routes.js";
 import TicketRouter from "./modules/ticket/ticket.routes.js";
 import TransactionRouter from "./modules/transaction/transaction.routes.js";
+
+const helmet = helmetImport as unknown as (
+  options?: Readonly<HelmetOptions>,
+) => RequestHandler;
 
 const app = express();
 
