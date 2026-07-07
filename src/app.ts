@@ -2,7 +2,7 @@ import express, { NextFunction, type Request, type Response } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 
-import { FRONTEND_URL, PORT } from "./config/config.js";
+import { FRONTEND_URL } from "./config/config.js";
 import helmet from "helmet";
 import { AppError } from "./class/appError.js";
 import { errorHandler } from "./middlewares/errorHandler.middleware.js";
@@ -51,7 +51,7 @@ app.use("/", (req: Request, _res: Response, next: NextFunction) => {
 
 //routes
 app.get("/", (_req: Request, res: Response) => {
-  res.send(`Your API is running on port: ${PORT}`);
+  res.send("Football ticket API is running.");
 });
 
 app.use("/api/auth", AuthRouter);
