@@ -1,4 +1,8 @@
-import { v2 as cloudinary, type UploadApiResponse } from "cloudinary";
+import {
+  v2 as cloudinary,
+  type UploadApiOptions,
+  type UploadApiResponse,
+} from "cloudinary";
 import { Readable } from "node:stream";
 import { AppError } from "../../class/appError.js";
 import {
@@ -13,18 +17,15 @@ cloudinary.config({
   api_secret: CLOUDINARY_API_SECRET,
 });
 
-const BASE_PARENT_FOLDER = "TICKETING-APP";
+const BASE_PARENT_FOLDER = "GROCERGO";
 
-export const uploadToCloudinary = (
+const uploadStreamToCloudinary = (
   file: Express.Multer.File,
-  id: string,
-  type: "AVATAR" | "TRANSACTION_PROOF" | "EVENT_BANNER",
+  options: UploadApiOptions,
 ): Promise<UploadApiResponse> => {
   return new Promise((resolve, reject) => {
-    const folder = `${BASE_PARENT_FOLDER}/${id}/${type}`;
-
     const stream = cloudinary.uploader.upload_stream(
-      { folder },
+      options,
       (error, result) => {
         if (error || !result) {
           return reject(
@@ -39,6 +40,50 @@ export const uploadToCloudinary = (
     Readable.from([file.buffer]).pipe(stream);
   });
 };
+
+export const uploadToCloudinary = (
+  file: Express.Multer.File,
+  id: string,
+  assetType: "AVATAR" | "EVENT_BANNER" | "TRANSACTION_PROOF",
+): Promise<UploadApiResponse> => {
+  const assetConfig = {
+    AVATAR: {
+      folder: `${BASE_PARENT_FOLDER}/USERS/${id}/AVATARS`,
+      publicId: `AVATAR-${id}`,
+    },
+    EVENT_BANNER: {
+      folder: `${BASE_PARENT_FOLDER}/USERS/${id}/EVENT_BANNERS`,
+      publicId: `EVENT-BANNER-${id}-${Date.now()}`,
+    },
+    TRANSACTION_PROOF: {
+      folder: `${BASE_PARENT_FOLDER}/TRANSACTIONS/${id}/PAYMENT_PROOFS`,
+      publicId: `TRANSACTION-PROOF-${id}-${Date.now()}`,
+    },
+  } satisfies Record<
+    "AVATAR" | "EVENT_BANNER" | "TRANSACTION_PROOF",
+    { folder: string; publicId: string }
+  >;
+
+  const { folder, publicId } = assetConfig[assetType];
+
+  return uploadStreamToCloudinary(file, {
+    folder,
+    public_id: publicId,
+    overwrite: assetType === "AVATAR",
+    invalidate: true,
+    resource_type: "image",
+  });
+};
+
+export const uploadAvatarToCloudinary = (
+  file: Express.Multer.File,
+  id: string,
+): Promise<UploadApiResponse> => uploadToCloudinary(file, id, "AVATAR");
+
+export const uploadProductPhotoCloudinary = (
+  file: Express.Multer.File,
+  id: string,
+): Promise<UploadApiResponse> => uploadToCloudinary(file, id, "EVENT_BANNER");
 
 export const deleteFromCloudinary = async (publicId: string) => {
   const action: UploadApiResponse = await cloudinary.uploader.destroy(publicId);

@@ -212,9 +212,39 @@ CLOUDINARY_API_SECRET=
 - `npm run dev` menjalankan server development dengan `tsx watch`
 - `npm run build` compile TypeScript ke folder `dist`
 - `npm run check` menjalankan type-check tanpa output build
+- `npm run vercel-build` generate Prisma client lalu type-check untuk jalur build Vercel
 - `npm run prisma:generate` generate Prisma client
 - `npm run prisma:migrate` menjalankan migration development
 - `npm run prisma:studio` membuka Prisma Studio
+
+## Deploy to Vercel
+
+- Set `football-ticket-backend` sebagai `Root Directory` project di Vercel.
+- Semua request diarahkan ke [api/index.ts](api/index.ts) lewat [vercel.json](vercel.json).
+- Isi seluruh environment variable dari [`.env.example`](.env.example) di dashboard Vercel.
+- Cron internal Express tidak dipakai di Vercel function path ini.
+- Node version yang dipakai project ini adalah `24.x` dari [package.json](package.json).
+- Build Command di Vercel: `npm run vercel-build`
+- Install Command di Vercel: `npm install`
+- Output Directory: kosongkan saja
+- Sebelum deploy, jalankan `npm run check` atau `npm run vercel-build` untuk memastikan type-check tetap lolos.
+
+## Recommended Vercel Settings
+
+- Framework Preset: `Other`
+- Root Directory: `football-ticket-backend`
+- Build Command: `npm run vercel-build`
+- Install Command: `npm install`
+- Output Directory: kosong
+- Node.js Version: `24.x`
+
+## Local Build Flow
+
+- Install dependency: `npm install`
+- Generate Prisma client kalau schema berubah: `npm run prisma:generate`
+- Type-check sebelum push/deploy: `npm run check`
+- Build local server versi Node biasa: `npm run build`
+- Jalankan local dev server: `npm run dev`
 
 ## Current Structure
 

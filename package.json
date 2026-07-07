@@ -33,21 +33,27 @@
     "pg": "^8.20.0",
     "zod": "^4.3.6"
   },
-  "name": "simple-auth-boilerplate",
+  "name": "football-ticket-backend",
   "version": "1.0.0",
-  "main": "index.js",
+  "private": true,
+  "main": "dist/src/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "check": "tsc --noEmit",
     "start": "node dist/src/server.js",
+    "start:vercel": "node dist/src/server.js",
+    "vercel-build": "npm run prisma:generate && npm run check",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio"
+  },
+  "engines": {
+    "node": "24.x"
   },
   "keywords": [],
   "author": "",
   "type": "module",
   "license": "ISC",
-  "description": "Simple Express + Prisma JWT auth boilerplate"
+  "description": "Football ticketing backend API for Express, Prisma, and PostgreSQL"
 }
